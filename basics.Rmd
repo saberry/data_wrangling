@@ -510,7 +510,7 @@ teams <- unique(nba_data$TEAM_ID)
 
 results_list <- list(list())
 
-for(i in teams[2]) {
+for(i in teams) {
   team_name <- unique(nba_data$TEAM_NAME[nba_data$TEAM_ID == i])
   
   players <- unique(nba_data$PLAYER_ID[nba_data$TEAM_ID == i])
@@ -522,6 +522,8 @@ for(i in teams[2]) {
     results_list[[length(results_list) + 1]] <- result
   }
 }
+
+results_list <- do.call('rbind', results_list)
 ```
 
 That beast becomes something as simple as this:
@@ -544,8 +546,11 @@ point_function <- function(player, team) {
   return(result)
 }
 
-point_function(players_teams$PLAYER_ID[1], 
-               players_teams$TEAM_ID[1])
+result <- mapply(point_function, 
+       players_teams$PLAYER_ID, 
+       players_teams$TEAM_ID, SIMPLIFY = FALSE)
+
+result <- do.call('rbind', result)
 ```
 
 
