@@ -65,8 +65,6 @@ While not, strictly speaking, an assessment, our last day together is going to b
 
 - Using tidyverse functions
 
-- When to use tidyverse operations
-
 - Connecting to a database from R
 
 - Writing SQL queries in R

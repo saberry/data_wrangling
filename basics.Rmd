@@ -1,7 +1,7 @@
 ---
 title: | 
-      | Practical Data Wrangling With R
-      | Basics
+      | Base R
+      | 
 output:
   html_document:
     toc: true
@@ -14,7 +14,7 @@ output:
 knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE, error = FALSE, comment = "")
 ```
 
-# Symbols {.tabset .tabset-fade .tabset-pills}
+# Symbols
 
 Here are some basic symbols that you will see in R:
 
@@ -57,7 +57,6 @@ function(x) {
 [] are used for indexing
 
 ```{r}
-
 # Gets the second thing
 x[2] 
 
@@ -84,7 +83,7 @@ $ is a shortcut used for accessing names within a data.frame
 cars$speed
 ```
 
-It is equivalent to:
+It is practically equivalent to:
 
 ```{r}
 cars[, "speed"]
@@ -107,6 +106,8 @@ z = c("string1", 'string2', "string3")
 cars$`1 $ bad name` = 1:nrow(cars)
 
 head(cars)
+
+`$`(cars, "speed")
 ```
 
 ## ==
@@ -160,14 +161,12 @@ x %*% y
 10 %% 3
 ```
 
-## %>% 
+## |> 
 
-%>% is a pipe that passes the output of one function into another function:
+|> is a pipe that passes the output of one function into another function:
 
 ```{r}
-library(dplyr)
-
-1:10 %>% 
+1:10 |> 
   mean()
 ```
 
@@ -201,7 +200,6 @@ If you want to install something from Github:
 devtools::install_github("tidyverse/ggplot2")
 ```
 
-
 # Loading Packages
 
 If you want to use a package, you load it into your local environment with:
@@ -210,7 +208,6 @@ If you want to use a package, you load it into your local environment with:
 library(dplyr)
 ```
 
-
 # Data Types
 
 There are a few different types of data within R.
@@ -218,7 +215,7 @@ There are a few different types of data within R.
 We have numeric variables:
 
 ```{r}
-nums = 1:10
+nums <- 1:10
 
 nums
 ```
@@ -226,7 +223,7 @@ nums
 We have characters:
 
 ```{r}
-chars = c("Poor", "Fair", "Good", "Great")
+chars <- c("Poor", "Fair", "Good", "Great")
 
 chars
 ```
@@ -234,7 +231,7 @@ chars
 And we have factors:
 
 ```{r}
-facs = as.factor(chars)
+facs <- as.factor(chars)
 
 facs
 ```
@@ -242,7 +239,7 @@ facs
 We can have just regular factors like above or we can order those factors:
 
 ```{r}
-orderedFacs = ordered(facs, 
+orderedFacs <- ordered(facs, 
                       levels = c("Poor", "Fair", "Good", "Great"))
 
 orderedFacs
@@ -254,7 +251,7 @@ orderedFacs
 At our most basic, we have a vector. Think of it a just a basic list of numbers:
 
 ```{r}
-vectorExample = rnorm(10)
+vectorExample <- rnorm(10)
 
 vectorExample
 ```
@@ -262,13 +259,13 @@ vectorExample
 There is the matrix. A matrix is a rectangle where everything is the same type of data:
 
 ```{r}
-characterMatrix = matrix(letters, nrow = 5, ncol = 5)
+characterMatrix <- matrix(letters, nrow = 5, ncol = 5)
 
 characterMatrix
 ```
 
 ```{r}
-numericMatrix = matrix(1:25, nrow = 5, ncol = 5)
+numericMatrix <- matrix(1:25, nrow = 5, ncol = 5)
 
 numericMatrix
 ```
@@ -277,11 +274,11 @@ numericMatrix
 If we have data of different types, we are dealing with data frames:
 
 ```{r}
-dfExample = data.frame(numVar = 1:3, 
-                       charVar = letters[1:3], 
-                       facVar = factor(c("Poor", "Good", "Great")), 
-                       ordVar = ordered(c("Poor", "Good", "Great"), 
-                                        levels = c("Poor", "Good", "Great")))
+dfExample <- data.frame(numVar = 1:3, 
+                        charVar = letters[1:3], 
+                        facVar = factor(c("Poor", "Good", "Great")), 
+                        ordVar = ordered(c("Poor", "Good", "Great"), 
+                                         levels = c("Poor", "Good", "Great")))
 
 summary(dfExample)
 ```
@@ -290,9 +287,23 @@ summary(dfExample)
 We also have lists. Lists can contain any number of any thing within the different list entries:
 
 ```{r}
-listExample = list(1, rnorm(10), numericMatrix, rnorm(30), dfExample)
+listExample <- list(1, 
+                    rnorm(10), 
+                    numericMatrix, 
+                    rnorm(30), 
+                    list(dfExample, cars))
 
 listExample
+```
+
+Whenever you have lists, we have an extra set of indices to consider:
+
+```{r}
+listExample[[3]]
+```
+
+```{r}
+listExample[[5]][[2]]
 ```
 
 # Useful Functions
@@ -319,5 +330,416 @@ dfExample[dfExample$facVar %in% testWords, ]
 
 dfExample[!(dfExample$facVar %in% testWords), ]
 
+```
+
+# Selecting 
+
+## Base
+
+There are many ways to select variables with <span class="pack">base</span> R:
+
+```{r, eval = FALSE}
+mtcars[, c(1:5, 7:8)]
+
+keepers = c("mpg", "cyl", "disp", "hp", "drat", "qsec", "vs")
+
+mtcars[, keepers]
+
+mtcars[, c("mpg", grep("^c", names(mtcars), values = TRUE))]
+```
+
+
+You can also drop variables:
+
+```{r}
+mtcars[, -c(1:2)]
+
+dropVars = c("vs", "drat")
+
+mtcars[, !(names(mtcars) %in% dropVars)]
+```
+
+Issues?
+
+For starters, the magic numbers are a no-go. The keepers lines could work, but would be a pain if we had a lot of variables. 
+
+Let's check this wacky stuff out where we want all variables that start with "age" and variables that likely represent questions (x1, x2, x3, ...):
+
+```{r}
+library(lavaan)
+
+testData = HolzingerSwineford1939
+
+names(testData)
+
+keepers = c(grep("^age", names(testData), value = TRUE), 
+            paste("x", 1:9, sep = ""))
+
+testData = testData[, keepers]
+
+```
+
+
+# Subsetting/Filtering 
+
+One of the more frequent tasks is related to filtering/subsetting your data. You often want to impose some types of rules on your data (e.g., US only, date ranges).
+
+R gives us all the ability in the world to filter data.
+
+```{r}
+summary(mtcars[mtcars$mpg < mean(mtcars$mpg), ])
+```
+
+# New Variables and Recoding 
+
+Adding a new variable in <span class="pack">base</span> R is as easy as the following:
+
+```{r}
+mtcars$roundedMPG = round(mtcars$mpg)
+```
+
+You will need to recode variables at some point. Depending on the nature of the recode it can be easy (e.g., to reverse code a scale, you just subtract every value by max value + 1).
+
+You will need to do some more elaborate stuff:
+
+```{r, eval = FALSE}
+
+mtcars$mpgLoHi = 0
+
+mtcars$mpgLoHi[mtcars$mpg > median(mtcars$mpg)] = 1
+```
+
+
+```{r, eval = FALSE}
+mtcars$mpgLoHi = ifelse(mtcars$mpg > median(mtcars$mpg), 1, 0)
+```
+
+# The apply family
+
+In addition to for loops, R has a whole set of functions for applying functions over various parts of your data. Let's start with the most general type: apply.
+
+We can use apply like this:
+
+```{r}
+apply(X = cars, 
+      MARGIN = 1, 
+      FUN = mean)
+```
+
+What we just did was to apply the mean function over the rows (MARGIN = 1) of the cars data frame. We could even assign that to our data:
+
+```{r}
+cars$row_means <- apply(X = cars, 
+      MARGIN = 1, 
+      FUN = mean)
+```
+Whenever you need to apply a function over the rows or columns of a data frame, apply has you covered.
+
+One of the most useful members of the apply family is lapply. You can give it a vector or a list, perform a task over that object, and then always get a list returned.
+
+```{r}
+test_values <- list(std_normal = rnorm(10000), 
+                    iq_norm = rnorm(1000, 100, 15), 
+                    score_norm = rnorm(100, 27, 3))
+
+lapply_result <- lapply(test_values, mean)
+
+data.frame(lapply_result)
+```
+
+Perhaps the most interesting thing that lapply can do is to work over a data frame, since a data frame is nothing more than a fancy list.
+
+```{r}
+str(mtcars)
+
+factor_vars <- c("cyl", "vs", "am", "gear")
+
+mtcars[, factor_vars] <- lapply(factor_vars, 
+                                function(x) as.factor(mtcars[, x]))
+
+str(mtcars)
+```
+
+Finally, we come to mapply: multiple apply. The goal of mapply is to apply several different vectors over a function:
+
+```{r}
+mapply(mean, list(1:10, 20:30, c(20, 340, NA)), na.rm = TRUE)
+```
+
+Let's compare what that would look like with an lapply:
+
+```{r}
+lapply(list(1:10, 20:30, c(20, 340, NA)), mean, na.rm = TRUE)
+```
+
+We can see that lapply returns a list, whereas mapply returns a simplified vector!
+
+The real power of mapply comes in when you need to create your own function:
+
+```{r}
+my_func <- function(x, y) {
+  
+  result <- x * y
+  
+  data.frame(x = x, 
+             y = y, 
+             result = result)
+}
+
+results <- mapply(my_func, x = 1:10, y = 1:10, SIMPLIFY = FALSE)
+
+do.call('rbind', results)
+```
+
+While that isn't anything that we couldn't do in a data frame already, those values will recycle if there is an unequal length:
+
+```{r}
+results <- mapply(my_func, x = 1:10, y = 1:20, SIMPLIFY = FALSE)
+
+do.call('rbind', results)
+```
+
+These also provide an excellent alternative to most nested for loops:
+
+```{r}
+nba_data <- read.csv("https://www.nd.edu/~sberry5/data/nba_data.csv")
+
+# players <- unique(nba_data$PLAYER_ID)
+
+teams <- unique(nba_data$TEAM_ID)
+
+results_list <- list(list())
+
+for(i in teams[2]) {
+  team_name <- unique(nba_data$TEAM_NAME[nba_data$TEAM_ID == i])
+  
+  players <- unique(nba_data$PLAYER_ID[nba_data$TEAM_ID == i])
+  
+  for(j in players) {
+    player_points <- sum(nba_data$PTS[nba_data$PLAYER_ID == j])
+    player_name <- unique(nba_data$PLAYER_NAME[nba_data$PLAYER_ID == j])
+    result <- data.frame(player_points, player_name, team_name)
+    results_list[[length(results_list) + 1]] <- result
+  }
+}
+```
+
+That beast becomes something as simple as this:
+
+```{r}
+players_teams <- nba_data[, c("PLAYER_ID", "TEAM_ID")]
+
+players_teams <- unique(players_teams)
+
+point_function <- function(player, team) {
+  team_name <- unique(nba_data$TEAM_NAME[nba_data$TEAM_ID == team])
+  
+  player_points <- sum(nba_data$PTS[nba_data$PLAYER_ID == player & 
+                                      nba_data$TEAM_ID == team])
+  
+  player_name <- unique(nba_data$PLAYER_NAME[nba_data$PLAYER_ID == player])
+  
+  result <- data.frame(player_points, player_name, team_name)
+  
+  return(result)
+}
+
+point_function(players_teams$PLAYER_ID[1], 
+               players_teams$TEAM_ID[1])
+```
+
+
+
+# Data Import 
+
+Importing data is often the easiest part (never too hard to import a nice .csv). Sometimes, though, we need some other strategies.
+
+## Delimited Files
+
+Frequently, you will see nicely delimited text files that are not .csv files -- these are often tab-delimited files, but they can take other forms. 
+
+```{r, eval = FALSE}
+read.table("https://download.bls.gov/pub/time.series/ce/ce.data.42a.RetailTrade.Employment", 
+           header = TRUE, sep = "\t")
+```
+
+Is the same as:
+
+```{r, eval = FALSE}
+read.delim("https://download.bls.gov/pub/time.series/ce/ce.data.42a.RetailTrade.Employment")
+```
+
+The <span class="func">read.table()</span> function gives you added flexibility to specify many different parameters. 
+
+Examine the following file from SDC Platinum and read it in properly:
+
+<a href="https://www3.nd.edu/~sberry5/data/sdcTest.txt">SDC Wackiness</a>
+
+How did you do?
+
+Did you notice anything about these files? They are not really very big, but they might have taken a little bit of time to read in. There have been times where people have commented that R is too slow on the read side. If you find you files are not being read quickly enough, you can try a few alternatives: <span class="pack">readr</span> and <span class="pack">data.table</span>
+
+Try the following:
+
+```{r, eval = FALSE}
+library(readr)
+
+readrTest = read_delim("https://download.bls.gov/pub/time.series/ce/ce.data.42a.RetailTrade.Employment", 
+                       delim = "\t")
+```
+
+
+```{r, eval = FALSE}
+library(data.table)
+
+dtTest = fread("https://download.bls.gov/pub/time.series/ce/ce.data.42a.RetailTrade.Employment", 
+               sep = "\t")
+```
+
+
+That SDC file that might have taken a few minutes will now take just a few seconds:
+
+```{r, eval = FALSE}
+sdc = read_delim("https://www3.nd.edu/~sberry5/data/sdcTest.txt", 
+                 delim = "^")
+```
+
+
+Pretty awesome, right?
+
+While <span class="pack">readr</span> works wonderfully on the read and write side, <span class="pack">data.table</span> is great for wrangling data that is a bit on the big side and is all together blazing fast. However, it does not shy away from confusing syntax and weird conventions. With that in mind, we won't be using it in this class, but do keep it in the back of your mind.  
+
+At times, you will get data in some proprietary format. That is when you need to turn to other places.
+
+## Excel
+
+Download the following Excel file: https://www3.nd.edu/~sberry5/data/excelTest.xlsx
+
+
+```{r, eval = FALSE}
+readxl::read_excel(path = "")
+```
+
+
+What do we know about Excel workbooks? Check out the help on <span class="pack">readxl</span> and let me know our path forward.
+
+## SAS
+
+```{r, eval = FALSE}
+haven::read_sas(data_file = "https://www3.nd.edu/~sberry5/data/wciklink_gvkey.sas7bdat")
+```
+
+
+## Stata
+
+```{r, eval = FALSE}
+haven::read_dta(file = "https://www3.nd.edu/~sberry5/data/stataExample.dta")
+```
+
+## SPSS
+
+We often see the -99 added as the missing value in SPSS (of course, there is no way that -99 would ever be an actual value, right?).
+
+```{r, eval = FALSE}
+haven::read_spss(file = "https://www3.nd.edu/~sberry5/data/spssExample.sav", 
+                 user_na = "-99")
+```
+
+
+## HTML
+
+Depending on your needs, reading an html table into R is getting to be too easy.
+
+```{r, eval = FALSE}
+library(rvest)
+
+cpi = read_html("http://www.usinflationcalculator.com/inflation/consumer-price-index-and-annual-percent-changes-from-1913-to-2008/") %>% 
+  html_table(fill = TRUE)
+```
+
+
+Things might get a bit tricky:
+
+```{r, eval = FALSE}
+highest = read_html("https://en.wikipedia.org/wiki/List_of_highest-grossing_films") %>% 
+  html_table(fill = TRUE)
+```
+
+## Nested Structures
+
+#### JSON
+
+Web-based graphics started getting popular not too long ago. Generally, stats people were not using them, but web developer-type folks were. They needed a structure that would work well for the web and interact with their JavaScript-based graphics -- thus, JavaScript Object Notation (JSON) was born. You will see JSON come out of many web-based interfaces. 
+
+<a href="https://www3.nd.edu/~sberry5/data/optionsDataBrief.json">This</a> is what JSON looks like.
+
+There are a few JSON-reading packages in R, but jsonlite tends to work pretty well.
+
+```{r, eval = FALSE}
+fjsonTest = jsonlite::read_json(path = "https://www3.nd.edu/~sberry5/data/optionsDataBrief.json", 
+                                simplifyVector = TRUE)
+```
+
+
+This is a very simple form of JSON. We are going to see a hairier version of this data in the coming days. 
+
+#### JSON Dangers
+
+There is JSON and then there is JSON. You might find yourself some interesting data and want to bring it in, but an error happens and you have no idea why the read_json function is telling you that the file is not JSON. 
+
+Not all JSON is pure JSON! When that is the case, you will need to create pure JSON.
+
+Look at this file: https://www3.nd.edu/~sberry5/data/reviews_Musical_Instruments_5.json
+
+It looks like JSON, but...
+
+```{r, eval = FALSE}
+jsonlite::validate("https://www3.nd.edu/~sberry5/data/reviews_Musical_Instruments_5.json")
+```
+
+If we would want to read that in as true JSON, we would need to do some work:
+
+```{r, eval = FALSE}
+musicalInstruments = readLines("https://www3.nd.edu/~sberry5/data/reviews_Musical_Instruments_5.json")
+
+musicalInstruments = paste(unlist(lapply(musicalInstruments, function(x) {
+  paste(x, ",", sep = "")
+})), collapse = "")
+
+musicalInstruments = paste("[", musicalInstruments, "]", sep = "")
+
+musicalInstruments = gsub("},]", "}]", musicalInstruments)
+```
+
+
+## Mass Reading
+
+Everything we just learned is great and you will use them all in your data wrangling missions.
+
+Fortunately (or unfortunately, depending on how you look at it), it is not the whole story -- you will frequently be reading in many files of the same time.
+
+If you have two files, you might be able to get away with brute force:
+
+```{r, eval = FALSE}
+# DO NOT RUN:
+
+myData1 = read.csv("test.csv")
+
+myData2 = read.csv("test2.csv")
+```
+
+Would you want to do this for 5 files? What about 100? Or 1000? I will answer it for you: no!
+
+The chunks below introduce some very important functions. We are going to see <span class="func">lapply</span> again -- it is important that you learn to love the apply family!
+
+```{r, eval = FALSE}
+# DO NOT RUN:
+
+allFiles = list.files(path = "", all.files = TRUE, full.names = TRUE, 
+                      recursive = TRUE, include.dirs = FALSE)
+
+allFilesRead = lapply(allFiles, function(x) read.csv(x, stringsAsFactors = FALSE))
+
+allData = do.call("rbind", allFilesRead)
 ```
 
