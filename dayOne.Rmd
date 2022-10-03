@@ -1,0 +1,803 @@
+---
+title: | 
+      | Practical Data Wrangling With R
+      | Day One
+output:
+  html_document:
+    toc: true
+    toc_float: true
+    theme: flatly
+    highlight: zenburn
+    css: documentCSS.css
+---
+
+
+```{r, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE, error = FALSE, comment = "")
+```
+
+
+# The Tidyverse
+
+```{r, echo = FALSE}
+tidyverse::tidyverse_logo()
+```
+
+
+We are going to be working around in the <span class="pack">tidyverse</span> for a good chunk of our time together. The whole point of the <span class="pack">tidyverse</span> is to offer a grammar of verbs. It is going to help us in a lot of the situations that we are going to be seeing.
+
+Another great feature of the <span class="pack">tidyverse</span> is the pipe: <span class="func">%>%</span>
+
+It does the same thing as the Unix |, but | in R is an or operator. 
+
+With all of the glowing praise for the <span class="pack">tidyverse</span>, we are still going to see some <span class="pack">base</span> R. Sometimes, it will demonstrate great reasons for using the <span class="pack">tidyverse</span>. In other situations, it will help you to not be afraid to use it when situations arise.
+
+
+# Some Demonstrations 
+
+## Summary Tables
+
+```{r}
+
+library(ggplot2)
+
+plotDat = aggregate(diamonds$cut, by = list(cut = diamonds$cut), 
+                    FUN = length)
+
+colnames(plotDat)[2] = "n"
+
+plotDat
+```
+
+## Visual
+
+```{r}
+ggplot(plotDat, aes(x = cut, y = n)) +
+  geom_point(aes(size = n)) +
+  theme_minimal()
+```
+
+## (Im)Proper Plotting
+
+Look at <span class="func">help(mtcars)</span> and check out the variables. Can you spot what is wrong with this plot?
+
+```{r}
+ggplot(mtcars, aes(x = wt, y = mpg, color = am)) + 
+  geom_point() +
+  theme_minimal()
+```
+
+
+## Proper Plotting
+
+The plot below is likely better.
+
+```{r}
+library(dplyr)
+
+mtcars$amFactor = as.factor(mtcars$am) 
+
+ggplot(mtcars, aes(x = wt, y = mpg, color = amFactor)) + 
+  geom_point() +
+  theme_minimal()
+```
+
+
+## Pipes: Making Life Easier
+
+
+Recall some of the things that we just saw:
+
+```{r, eval = FALSE}
+plotDat = aggregate(diamonds$cut, by = list(cut = diamonds$cut), FUN = length)
+
+colnames(plotDat)[2] = "n"
+
+ggplot(plotDat, aes(x = cut, y = n)) +
+  geom_point(aes(size = n)) +
+  theme_minimal()
+```
+
+This is somewhat tricky code. We have to create a new object with the oft-muddy <span class="func">aggregate</span> and reset a column name (by magic number in an index, no less). 
+
+This can be made much easier with <span class="pack">dplyr</span>:
+
+```{r}
+diamonds %>% 
+  group_by(cut) %>% 
+  summarize(n = n()) %>% 
+  ggplot(., aes(x = cut, y = n)) +
+  geom_point(aes(size = n)) +
+  theme_minimal()
+  
+```
+
+It isn't a reduction in lines, but it is certainly clearer and follows a more logical thought process. This is the whole point of the <span class="pack">tidyverse</span> (and <span class="pack">dplyr</span> specifically) -- allowing you to write how you would explain the process. 
+
+As an added bonus, we don't need to create a bunch of different objects to do something simple.
+
+We can see that <span class="pack">dplyr</span> will also make the plot for am easier.
+
+```{r}
+mtcars %>% 
+  mutate(am = as.factor(am)) %>%  
+  ggplot(., aes(x = wt, y = mpg, color = am)) + 
+  geom_point() +
+  theme_minimal()
+```
+
+## On Code Golf
+
+You will often notice that a <span class="pack">dplyr</span> chunk might take a few more lines to work through than base R alone -- don't consider this as a bad thing. There will be many times in this course and in your potential work that you might think that you need to use as few lines as possible. Resist this temptation. Sometime you need to break something up into many lines and create new objects -- this ability is exactly why we use R!
+
+
+# Data Import 
+
+Importing data is often the easiest part (never too hard to import a nice .csv). Sometimes, though, we need some other strategies.
+
+## Delimited Files
+
+Frequently, you will see nicely delimited text files that are not .csv files -- these are often tab-delimited files, but they can take other forms. 
+
+```{r, eval = FALSE}
+read.table("https://download.bls.gov/pub/time.series/ce/ce.data.42a.RetailTrade.Employment", 
+           header = TRUE, sep = "\t")
+```
+
+Is the same as:
+
+```{r, eval = FALSE}
+read.delim("https://download.bls.gov/pub/time.series/ce/ce.data.42a.RetailTrade.Employment")
+```
+
+The <span class="func">read.table()</span> function gives you added flexibility to specify many different parameters. 
+
+Examine the following file from SDC Platinum and read it in properly:
+
+<a href="https://www3.nd.edu/~sberry5/data/sdcTest.txt">SDC Wackiness</a>
+
+How did you do?
+
+Did you notice anything about these files? They are not really very big, but they might have taken a little bit of time to read in. There have been times where people have commented that R is too slow on the read side. If you find you files are not being read quickly enough, you can try a few alternatives: <span class="pack">readr</span> and <span class="pack">data.table</span>
+
+Try the following:
+
+```{r, eval = FALSE}
+library(readr)
+
+readrTest = read_delim("https://download.bls.gov/pub/time.series/ce/ce.data.42a.RetailTrade.Employment", 
+                       delim = "\t")
+```
+
+
+```{r, eval = FALSE}
+library(data.table)
+
+dtTest = fread("https://download.bls.gov/pub/time.series/ce/ce.data.42a.RetailTrade.Employment", 
+               sep = "\t")
+```
+
+
+That SDC file that might have taken a few minutes will now take just a few seconds:
+
+```{r, eval = FALSE}
+sdc = read_delim("https://www3.nd.edu/~sberry5/data/sdcTest.txt", 
+                 delim = "^")
+```
+
+
+Pretty awesome, right?
+
+While <span class="pack">readr</span> works wonderfully on the read and write side, <span class="pack">data.table</span> is great for wrangling data that is a bit on the big side and is all together blazing fast. However, it does not shy away from confusing syntax and weird conventions. With that in mind, we won't be using it in this class, but do keep it in the back of your mind.  
+
+
+At times, you will get data in some proprietary format. That is when you need to turn to other places.
+
+## Excel
+
+Download the following Excel file: https://www3.nd.edu/~sberry5/data/excelTest.xlsx
+
+
+```{r, eval = FALSE}
+readxl::read_excel(path = "")
+```
+
+
+What do we know about Excel workbooks? Check out the help on <span class="pack">readxl</span> and let me know our path forward.
+
+## SAS
+
+```{r, eval = FALSE}
+haven::read_sas(data_file = "https://www3.nd.edu/~sberry5/data/wciklink_gvkey.sas7bdat")
+```
+
+
+## Stata
+
+```{r, eval = FALSE}
+haven::read_dta(file = "https://www3.nd.edu/~sberry5/data/stataExample.dta")
+```
+
+## SPSS
+
+We often see the -99 added as the missing value in SPSS (of course, there is no way that -99 would ever be an actual value, right?).
+
+```{r, eval = FALSE}
+haven::read_spss(file = "https://www3.nd.edu/~sberry5/data/spssExample.sav", 
+                 user_na = "-99")
+```
+
+
+## HTML
+
+Depending on your needs, reading an html table into R is getting to be too easy.
+
+```{r, eval = FALSE}
+library(rvest)
+
+cpi = read_html("http://www.usinflationcalculator.com/inflation/consumer-price-index-and-annual-percent-changes-from-1913-to-2008/") %>% 
+  html_table(fill = TRUE)
+```
+
+
+Things might get a bit tricky:
+
+```{r, eval = FALSE}
+highest = read_html("https://en.wikipedia.org/wiki/List_of_highest-grossing_films") %>% 
+  html_table(fill = TRUE)
+```
+
+What is the return of this call?
+
+
+## rio
+
+For many of these tasks, you can just use the <span class="pack">rio</span> package -- you give it the file and it will do the rest!
+
+```{r, eval = FALSE}
+rio::import("folder/file")
+```
+
+
+## Nested Structures
+
+#### JSON
+
+Web-based graphics started getting popular not too long ago. Generally, stats people were not using them, but web developer-type folks were. They needed a structure that would work well for the web and interact with their JavaScript-based graphics -- thus, JavaScript Object Notation (JSON) was born. You will see JSON come out of many web-based interfaces. 
+
+<a href="https://www3.nd.edu/~sberry5/data/optionsDataBrief.json">This</a> is what JSON looks like.
+
+There are a few JSON-reading packages in R, but jsonlite tends to work pretty well.
+
+```{r, eval = FALSE}
+jsonTest = jsonlite::read_json(path = "https://www3.nd.edu/~sberry5/data/optionsDataBrief.json", 
+                                simplifyVector = TRUE)
+```
+
+
+This is a very simple form of JSON. We are going to see a hairier version of this data in the coming days. 
+
+#### JSON Dangers
+
+There is JSON and then there is JSON. You might find yourself some interesting data and want to bring it in, but an error happens and you have no idea why the read_json function is telling you that the file is not JSON. 
+
+Not all JSON is pure JSON! When that is the case, you will need to create pure JSON.
+
+Look at this file: https://www3.nd.edu/~sberry5/data/reviews_Musical_Instruments_5.json
+
+It looks like JSON, but...
+
+```{r, eval = FALSE}
+jsonlite::validate("https://www3.nd.edu/~sberry5/data/reviews_Musical_Instruments_5.json")
+```
+
+If we would want to read that in as true JSON, we would need to do some work:
+
+```{r, eval = FALSE}
+musicalInstruments = readLines("https://www3.nd.edu/~sberry5/data/reviews_Musical_Instruments_5.json")
+
+musicalInstruments = paste(unlist(lapply(musicalInstruments, function(x) {
+  paste(x, ",", sep = "")
+})), collapse = "")
+
+musicalInstruments = paste("[", musicalInstruments, "]", sep = "")
+
+musicalInstruments = gsub("},]", "}]", musicalInstruments)
+```
+
+
+## Mass Reading
+
+Everything we just learned is great and you will use them all in your data wrangling missions.
+
+Fortunately (or unfortunately, depending on how you look at it), it is not the whole story -- you will frequently be reading in many files of the same time.
+
+If you have two files, you might be able to get away with brute force:
+
+```{r, eval = FALSE}
+# DO NOT RUN:
+
+myData1 = read.csv("test.csv")
+
+myData2 = read.csv("test2.csv")
+```
+
+Would you want to do this for 5 files? What about 100? Or 1000? I will answer it for you: no!
+
+The chunks below introduce some very important functions. We are going to see <span class="func">lapply</span> again -- it is important that you learn to love the apply family!
+
+```{r, eval = FALSE}
+# DO NOT RUN:
+
+allFiles = list.files(path = "", all.files = TRUE, full.names = TRUE, 
+                      recursive = TRUE, include.dirs = FALSE)
+
+allFilesRead = lapply(allFiles, function(x) read.csv(x, stringsAsFactors = FALSE))
+
+allData = do.call("rbind", allFilesRead)
+```
+
+
+You can also use <span class="pack">rio</span>:
+
+```{r, eval = FALSE}
+# DO NOT RUN:
+
+rio::import_list("", rbind = TRUE)
+```
+
+
+
+# The Grammar Of Data
+
+One of the major aims of the <span class="pack">tidyverse</span> is to provide a clear and consistent grammar to data manipulation. This is helpful when diving deeper into the weeds. 
+
+Do you remember this?
+
+```{r, eval = FALSE}
+highest = read_html("https://en.wikipedia.org/wiki/List_of_highest-grossing_films") %>% 
+  html_table(fill = TRUE)
+```
+
+What did we get out of this? It was a big list of data frames. If we are looking for only one thing and we know that it is the first thing, we have some options:
+
+
+```{r, eval = FALSE}
+highest = highest[[1]]
+```
+
+
+This is great for keeping the object at first and then plucking out what we want. If you want the whole thing to be together, though, we have even more options:
+
+```{r, eval = FALSE}
+highest = read_html("https://en.wikipedia.org/wiki/List_of_highest-grossing_films") %>% 
+  html_table(fill = TRUE) %>% 
+  `[[`(1)
+```
+
+
+And now we see why R mystifies people. What does is that bit of nonsense at the end. It is really just an index shortcut. Once you know how to use it, it is great; however, it will make you shake your head if you see it in the wild without knowing about it first.
+
+This is where the benefit of <span class="pack">tidyverse</span> becomes clear. 
+
+
+```{r, eval = FALSE}
+highest = read_html("https://en.wikipedia.org/wiki/List_of_highest-grossing_films") %>% 
+  html_table(fill = TRUE) %>%
+  magrittr::extract2(1)
+```
+
+
+Or...
+
+
+```{r, eval = FALSE}
+highest = read_html("https://en.wikipedia.org/wiki/List_of_highest-grossing_films") %>% 
+  html_table(fill = TRUE) %>%
+  purrr::pluck(1)
+```
+
+Both functions are doing the same thing and with slightly different names, but it is crystal-clear what they are doing.
+
+Do be careful, though, because we can have some issues in function masking and <span class="func">pluck</span> from <span class="pack">purrr</span> does something very different than <span class="func">pluck</span> from <span class="pack">dplyr</span>.
+
+
+Someone try it and tell me what happens!
+
+# Selecting 
+
+## Base
+
+There are many ways to select variables with <span class="pack">base</span> R:
+
+```{r, eval = FALSE}
+mtcars[, c(1:5, 7:8)]
+
+keepers = c("mpg", "cyl", "disp", "hp", "drat", "qsec", "vs")
+
+mtcars[, keepers]
+
+mtcars[, c("mpg", grep("^c", names(mtcars), values = TRUE))]
+```
+
+
+You can also drop variables:
+
+```{r}
+mtcars[, -c(1:2)]
+
+dropVars = c("vs", "drat")
+
+mtcars[, !(names(mtcars) %in% dropVars)]
+```
+
+Issues?
+
+For starters, the magic numbers are a no-go. The keepers lines could work, but would be a pain if we had a lot of variables. 
+
+Let's check this wacky stuff out where we want all variables that start with "age" and variables that likely represent questions (x1, x2, x3, ...):
+
+```{r}
+library(lavaan)
+
+testData = HolzingerSwineford1939
+
+names(testData)
+
+keepers = c(grep("^age", names(testData), value = TRUE), 
+            paste("x", 1:9, sep = ""))
+
+testData = testData[, keepers]
+
+```
+
+
+Not only do we have another regular expression, but we also have this paste line to create variable names. It seems like too much work to do something simple!
+
+While not beautiful, these are perfectly valid ways to do this work. I have such sights to show you, but don't forget about this stuff -- you never know when you might need to use it.
+
+## dplyr
+
+We have already seen a bit of <span class="pack">dplyr</span>, but we are going to dive right into some of the functions now.
+
+In base R, we have to do some chanting to select our variables. With <span class="pack">dplyr</span>, we can just use <span class="func">select</span>: 
+
+```{r}
+mtcars %>% 
+  select(mpg, cyl, am)
+```
+
+
+We can also drop variables with the <span class="func">-</span>:
+
+```{r}
+mtcars %>% 
+  select(-vs)
+```
+
+
+We also have several helper functions that we can use:
+
+```{r, eval = FALSE}
+HolzingerSwineford1939 %>% 
+  select(num_range("x", 1:9), starts_with("age"), 
+         matches("^s.*.l$"))
+```
+
+
+#### Not Important, But Helpful
+
+Changing variable position in R is a pain:
+
+```{r}
+head(HolzingerSwineford1939[, c(1, 7:15, 2:6)])
+```
+
+
+
+```{r}
+HolzingerSwineford1939 %>% 
+  select(id, starts_with("x"), everything()) %>% 
+  head()
+```
+
+
+## Your Turn!
+
+1.  Use that Stata test file.
+
+2.  Grab every lvi, effect, leader, and cred variable
+
+3.  Use <span class="func">summary</span> to understand your data.
+
+4.  Now, just keep every lvi variable.
+
+5.  Use a corrplot to see relationships.
+
+    - corrplot needs a correlation matrix (use cor)
+
+```{r, eval = FALSE}
+# Just to give you an idea about how it works!
+
+install.packages("corrplot")
+
+data.frame(x = rnorm(10), y = rnorm(10)) %>% 
+  cor() %>% 
+  corrplot()
+```
+
+
+# Subsetting/Filtering 
+
+One of the more frequent tasks is related to filtering/subsetting your data. You often want to impose some types of rules on your data (e.g., US only, date ranges).
+
+## Base
+
+R gives us all the ability in the world to filter data.
+
+```{r}
+summary(mtcars[mtcars$mpg < mean(mtcars$mpg), ])
+```
+
+Unless you know exactly what you are doing, this is a bit hard to read -- you might be asking yourself what the comma means and why there is nothing after it.
+
+
+## dplyr
+
+When we use <span class="func">filter</span>, we are specifying what it is that we want to keep.
+
+Keep this or that:
+
+```{r}
+mtcars %>% 
+  filter(cyl == 4 | cyl == 8) %>% 
+  summary()
+```
+
+Keep this and that:
+
+```{r}
+mtcars %>% 
+  filter(cyl == 4 & mpg > 25) %>% 
+  summary()
+```
+
+Filter this out:
+
+```{r}
+mtcars %>% 
+  filter(cyl != 4) %>% 
+  summary()
+```
+
+
+
+Naturally, it can also take a function
+
+```{r}
+mtcars %>% 
+  filter(mpg < mean(mpg)) %>% 
+  summary()
+```
+
+
+## Your Turn
+
+For now, we are going to stick with that stataExample data. 
+
+1.  Select the same variables, but also include Rater.
+
+2.  Filter the data on Rater -- check the values and filter both ways.
+
+3.  Now check those correlations again!
+
+4.  Throw the Gender variable in and filter on that.
+
+# New Variables and Recoding 
+
+## Base
+
+Adding a new variable in <span class="pack">base</span> R is as easy as the following:
+
+```{r}
+mtcars$roundedMPG = round(mtcars$mpg)
+```
+
+## dplyr
+
+If, however, we want to do things in a tidy chunk, we need to use <span class="func">mutate</span>.
+
+```{r}
+mtcars = mtcars %>% 
+  mutate(roundedMPG = round(mpg))
+```
+
+
+There is also <span class="func">transmute</span>. Can anyone venture a guess as to what it might do?
+
+## Base Recoding
+
+You will need to recode variables at some point. Depending on the nature of the recode it can be easy (e.g., to reverse code a scale, you just subtract every value by max value + 1).
+
+You will need to do some more elaborate stuff:
+
+```{r, eval = FALSE}
+
+mtcars$mpgLoHi = 0
+
+mtcars$mpgLoHi[mtcars$mpg > median(mtcars$mpg)] = 1
+```
+
+
+```{r, eval = FALSE}
+mtcars$mpgLoHi = ifelse(mtcars$mpg > median(mtcars$mpg), 1, 0)
+```
+
+These are pretty good ways to do recoding of this nature, but what about this:
+
+```{r, eval = FALSE}
+mtcars$vs[which(mtcars$vs == 0)] = "v"
+
+mtcars$vs[which(mtcars$vs == 1)] = "s"
+```
+
+
+Or this:
+
+```{r, eval = FALSE}
+mtcars$vs = ifelse(mtcars$vs == 0, "v", "s")
+```
+
+
+## dplyr recoding
+
+```{r, eval = FALSE}
+recode(mtcars$vs, `0` = "v", `1` = "s")
+```
+
+## Your Turn!
+
+1.  For the sake of demonstration, select only the first 10 lvi variables and everything else.
+
+2.  Keep only observations with Rater == 0. 
+
+3.  Assume that the first 5 lvi variables (01 through 05) are scores for one assessment and the next five (06 through 10) are scores for another assessment.
+
+4.  Create two new variables to capture the mean of those scores.
+
+  - You will need to use the <span class="func">rowwise</span> function ahead of mutate.
+  
+  - You can use the <span class="func">mean</span> function, but you will have to wrap the variables in <span class="func">c()</span>
+
+
+```{r, eval = FALSE}
+# Just to help you along!
+
+data.frame(x = rnorm(10), y = rnorm(10)) %>% 
+  rowwise() %>% 
+  mutate(test = mean(c(x, y)))
+```
+
+# Communication
+
+We won't have any big end-of-day wrap exercises to do today. Instead, we are going to learn just a few cool things.
+
+## ggplot2
+
+We already saw some <span class="pack">ggplot2</span>, but let's take a few minutes to dive into it a bit more.
+
+Just like everything else in the <span class="pack">tidyverse</span>, <span class="pack">ggplot2</span> provides a clear and consistent grammar, except the focus is on data visualization. With <span class="pack">ggplot2</span>, we can stack layer after layer into the plotting space to help visualize our data.
+
+Let's take a look at some good <span class="pack">ggplot2</span> layering:
+
+```{r}
+library(ggplot2)
+
+library(lavaan)
+
+testData = HolzingerSwineford1939
+
+ggplot(testData, aes(x7, ageyr)) +
+  geom_point()
+```
+
+Next, we can add some color:
+
+```{r}
+ggplot(testData, aes(x7, ageyr)) +
+  geom_point(aes(color = as.factor(grade)), alpha = .75)
+```
+
+Now, we can add a smooth line:
+
+```{r}
+ggplot(testData, aes(x7, ageyr)) +
+  geom_point(aes(color = as.factor(grade)), alpha = .75) + 
+  geom_smooth()
+```
+
+And we can look at small multiples:
+
+```{r}
+ggplot(testData, aes(x7, ageyr)) +
+  geom_point(aes(color = as.factor(grade)), alpha = .75) + 
+  geom_smooth() +
+  facet_grid(~ sex)
+```
+
+Let's get those silly grey boxes out of there:
+
+```{r}
+ggplot(testData, aes(x7, ageyr)) +
+  geom_point(aes(color = as.factor(grade)), alpha = .75) + 
+  geom_smooth() +
+  facet_grid(~ sex) +
+  theme_minimal()
+```
+
+
+Perhaps add a better color scheme:
+
+```{r}
+ggplot(testData, aes(x7, ageyr)) +
+  geom_point(aes(color = as.factor(grade)), alpha = .75) + 
+  geom_smooth() +
+  facet_grid(~ sex) +
+  theme_minimal() +
+  scale_color_brewer(palette = "Dark2")
+```
+
+
+We could keep going forever and tweak anything that you could imagine (labels, ticks, etc.), but this should give you a pretty good idea about what you can do with regard to static plots.
+
+Oh...but we don't have to stick with just static plots. We can use the <span class="pack">plotly</span> package to make our ggplot object interactive.
+
+```{r}
+library(plotly)
+
+radPlot = ggplot(testData, aes(x7, ageyr)) +
+  geom_point(aes(color = as.factor(grade)), alpha = .75) + 
+  geom_smooth() +
+  facet_grid(~ sex) +
+  theme_minimal() +
+  scale_color_brewer(palette = "Dark2")
+
+ggplotly(radPlot)
+
+```
+
+You can also build plots with <span class="pack">plotly</span>, but we will save that for another day in the future.
+
+Learning to use <span class="pack">ggplot2</span> will pay great dividends -- there is absolutely **nothing** better for creating visualizations. There is even a whole group of packages that do nothing but add stuff into it.
+
+## DT
+
+Visualizations are great and they often tell a better story than tables. Sometimes, though, you want to give people a glimpse of the data. The <span class="pack">DT</span> package let's you create interactive data tables (they are JS data tables). 
+
+You could give people the entire data to explore:
+
+```{r, eval = FALSE}
+library(DT)
+
+datatable(testData)
+
+```
+
+
+You can also use the <span class="broom">DT</span> package to tidy your summaries into a nice data frame:
+
+```{r, eval = FALSE}
+lm(x7 ~ ageyr + school, data = testData) %>% 
+  broom::tidy() %>% 
+  mutate_if(is.numeric, round, 4) %>% 
+  datatable()
+```
+
+
+We don't want to get too far ahead of ourselves here -- we will see more places to use this tomorrow.
+
+## R Markdown & Knitr
+
+Do you have a moment to hear the good word of Donald Knuth? If you want to work in a reproducible fashion <span class="rmarkdown">base</span> and <span class="pack">knitr</span> are here to help you out. The slides you saw earlier and even the document you are seeing now are all done with R Markdown. It is my hope that you will also use R Markdown for your presentations on Thursday.
+
+

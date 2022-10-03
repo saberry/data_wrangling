@@ -1,0 +1,567 @@
+---
+title: | 
+      | Practical Data Wrangling With R
+      | Day Two
+output:
+  html_document:
+    toc: true
+    toc_float: true
+    theme: flatly
+    highlight: zenburn
+    css: documentCSS.css
+---
+
+
+```{r, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE, error = FALSE, comment = "")
+```
+
+
+
+# Summarizing And Grouping
+
+If we recall, we already saw a little bit of grouping and merging (if you don't, you might remember that mess with aggregate). Given that we already saw aggregate, we will just dive right into the tidyverse.
+
+## dplyr
+
+Grouping data and comparing various summary statistics by group is a common task. Sometimes it is just a means of exploration and sometimes it will actually answer the question. No matter the need, you will likely find it quite simple.
+
+```{r}
+library(dplyr)
+
+mtcars %>% 
+  summarize(meanMPG = mean(mpg), 
+            meanSD = sd(mpg))
+```
+
+
+You can even summarize all of your variables in a handy way.
+
+```{r}
+mtcars %>% 
+  summarize_all(funs(mean, sd), na.rm = TRUE)
+```
+
+Because we are dealing with the tidyverse, variable selection is included.
+
+```{r}
+mtcars %>% 
+  summarize_at(vars(starts_with("c")), 
+               funs(mean, sd), na.rm = TRUE)
+```
+
+
+Combining group_by with summarize welcomes even more power to summarize data.
+
+
+```{r}
+mtcars %>% 
+  group_by(am) %>% 
+  summarize(meanMPG = mean(mpg), 
+            sdMPG = sd(mpg))
+```
+
+
+You are not limited to single <span class="func">group_by statements</span>!
+
+## Your Turn
+
+1.  Use the stataData again:
+
+```{r, eval = FALSE}
+stataExample = haven::read_dta(file = "https://www3.nd.edu/~sberry5/data/stataExample.dta")
+```
+
+2.  Check out the data names and find ones that might be suitable for grouping.
+
+    - Gender, leaderID, and a few others might stick out
+    
+3.  Pick a variable to summarize and some type of summary statistic.
+
+    - mean() and sd() are both easy, but be mindful of NAs
+
+# Reshaping 
+
+Now, things are going to get weird.
+
+Data can take many different forms.
+
+We can have data that looks like this:
+
+```{r, eval = FALSE}
+wideDat = data.frame(id = 1:3, 
+                     age = c(33, 35, 37), 
+                     employeeType = c("full", "full", "part"))
+```
+
+
+Or like this:
+
+```{r, eval = FALSE}
+wideDat = data.frame(id = rep(1:3, times = 2), 
+                     variable = rep(c("age", "employeeType"), each = 3), 
+                     value = c(33, 35, 37, 
+                               "full", "full", "part"))
+```
+
+
+The first type, is what many will recongize as standard tabular data. Each row represents an observation, each column is a variable, and each "cell" holds one value.
+
+The second type, long data, is what many will call key-value pairs. You will often see data like this in timeseries data.
+
+You will encounter people who will swear that one way or the other is the ideal way to represent data -- we are going to opt for pragmatic as opposed to dogmatic. We can easily switch between these two types of data representations -- this is called reshaping.
+
+There is a bit of a hierarchy in R with regard to reshaping data. The <span class="func">reshape</span> function in the <span class="pack">stats</span> package can handle most of your needs, but to resulting data is a bit on the ugly side (bad default row names, weird automatic column names, and a bunch of arguments). The <span class="pack">reshape</span> package gives you all of the power, but with clearer code and better output. The <span class="pack">reshape2</span> package has all of the power, but with some added functionality. The <span class="pack">tidyr</span> package makes things incredibly easy, but at the expense of some flexibility. 
+
+## Base/stats
+
+The following chunk of code needs the <span class="func">as.data.frame()</span>. Why, you might ask? Almost everything in <span class="pack">dplyr</span> converts data to a <span class="pack">tibble</span>. Many base R functions will go crazy when they encounter a tibble, so you need to explicitly make it a data frame. You might ask what is the trouble tibbles (anyone?)...
+
+```{r}
+
+library(ggplot2)
+
+data("starwars")
+
+as.data.frame(starwars) %>% 
+  filter(species == "Human" & grepl("(Skywalker)|(Rey)|(Vader)|(Kylo)", .$name)) %>% 
+  select(name, height, mass) %>% 
+  reshape(., idvar = "name", v.names = "values", varying = list(2:3), 
+          times = c("height", "mass"), direction = "long") %>% 
+  ggplot(., aes(x = name, y = values, color = time)) + 
+  geom_point(size = 3.5) +
+  scale_color_brewer(palette = "Dark2") +
+  theme_minimal()
+  
+```
+
+
+## reshape
+
+Let's use the <span class="pack">reshape</span> package to do the same thing. You are going to notice a few differences in the function arguments. The <span class="pack">reshape</span> packages have this notion of melting (going from wide to long) and casting (going from long to wide). Melting makes plenty of sense to me, but I can only imagine what casting means. 
+
+```{r}
+starwars %>% 
+  as.data.frame() %>% 
+  filter(species == "Human" & 
+           grepl("(Skywalker)|(Rey)|(Vader)|(Kylo)", 
+                 .$name)) %>% 
+  select(name, height, mass) %>% 
+  reshape::melt.data.frame(., id.vars = "name", 
+                           measure.vars = 2:3, 
+                           variable_name = "type", na.rm = TRUE) %>% 
+  ggplot(., aes(x = name, y = value, color = type)) + 
+  geom_point(size = 3.5) +
+  scale_color_brewer(palette = "Dark2") +
+  theme_minimal()
+```
+
+
+Reshape introduced the vernacular, but I really do not see a reason to use it anymore.
+
+## reshape2
+
+We don't need to worry about the tibble issue with <span class="pack">reshape2</span>!
+
+```{r}
+starwars %>% 
+  filter(species == "Human" & grepl("(Skywalker)|(Rey)|(Vader)|(Kylo)", .$name)) %>% 
+  select(name, height, mass) %>% 
+  reshape2::melt(., id.vars = "name", 
+                           measure.vars = 2:3, variable.name = "type", 
+                           value.name = "value", na.rm = TRUE) %>% 
+  ggplot(., aes(x = name, y = value, color = type)) + 
+  geom_point(size = 3.5) +
+  scale_color_brewer(palette = "Dark2") +
+  theme_minimal()
+```
+
+## tidyr
+
+Allows for <span class="pack">dplyr</span> variable selection and a little bit more clarity with creating the id(s) variables.
+
+```{r}
+starwars %>% 
+  filter(species == "Human" & grepl("(Skywalker)|(Rey)|(Vader)|(Kylo)", .$name)) %>% 
+  select(name, height, mass) %>% 
+  tidyr::gather(., key = type, value = value, -name) %>% 
+  ggplot(., aes(x = name, y = value, color = type)) + 
+  geom_point(size = 3.5) +
+  scale_color_brewer(palette = "Dark2") +
+  theme_minimal()
+```
+
+The complimentary function to <span class="func">gather</span> is <span class="func">spread</span>:
+
+```{r}
+library(tidyr)
+
+starwarsLong = starwars %>% 
+  filter(species == "Human" & grepl("(Skywalker)|(Rey)|(Vader)|(Kylo)", .$name)) %>% 
+  select(name, height, mass) %>% 
+  gather(., key = type, value = value, -name)
+
+starwarsLong
+
+starwarsLong %>% 
+  spread(., key = type, value = value)
+
+```
+
+
+In addition to reshaping, <span class="pack">tidyr</span> has some handy functions for splitting (<span class="func">separate</span>) and pasting (<span class="func">unite</span>) columns.
+
+## Others
+
+While we won't dive into it, the <span class="pack">splitstackshape</span> package is very handy for reshaping. It also has additional uses for column manipulations
+
+## Your Turn
+
+
+
+
+# Merging 
+
+Now we are playing with power! Having multiple datasets in memory is one of R's strong points (not everything can manage such a modern feat). Once you get out there, this becomes important.
+
+Not only can we have multiple datasets open, but we can also merge those datasets together, with the proper variables, of course. 
+
+## base
+
+The <span class="func"></span>merge function in base R, like everything else, can do us a great amount of good. 
+
+```{r, eval = FALSE}
+
+board = haven::read_sas()
+
+organization = haven::read_sas()
+
+mergedDat = merge(x = board, y = organization, by = "", 
+      all.x = TRUE, all.y = FALSE)
+
+```
+
+If there is anything good to be gotten from SQL, it is the notion of different joins and the handy language that it provides for specifying those joins. The merge function gives us no such explicit conventions (we would need to intuit or...read the documentation).
+
+
+### Simulated Merryment
+
+#### Live And Onstage!
+
+Left join = all rows from x and all columns from x and y
+
+Right join = all rows from y and all columns from x and y
+
+Inner join = all rows from x with matching values in y and all columns from x and y
+
+Semi join = all rows from x with matching values in y and just columns from x
+
+Full join = everything
+
+With that knowledge, can we map the various combinations of all.x and all.y? 
+
+## Left
+
+```{r, eval = FALSE}
+merge1 = haven::read_dta("https://www3.nd.edu/~sberry5/data/merge1Company.dta")
+
+sasExample = haven::read_sas("https://www3.nd.edu/~sberry5/data/wciklink_gvkey.sas7bdat")
+
+leftTest = left_join(merge1, sasExample, by = "gvkey")
+```
+
+
+If we want to join on multiple columns, we could provide a character vector:
+
+```{r, eval = FALSE}
+leftTestMultiple = left_join(merge1, sasExample, by = c("gvkey", "coname"))
+```
+
+
+If our names don't match, we need to provide both:
+
+```{r, eval = FALSE}
+leftTestEqual = left_join(merge1, sasExample, by = c("gvkey", 
+                                                "coname", 
+                                                "datadate" = "DATADATE1"))
+```
+
+How did this one work? Always check your data!
+
+## Right
+
+```{r, eval = FALSE}
+rightTest = right_join(merge1, sasExample, by = c("gvkey"))
+```
+
+## Inner
+
+```{r, eval = FALSE}
+innerTest = inner_join(merge1, sasExample, by = c("gvkey"))
+```
+
+
+## Semi
+
+```{r, eval = FALSE}
+semiTest = semi_join(merge1, sasExample, by = c("gvkey"))
+```
+
+
+## Full
+
+```{r, eval = FALSE}
+fullTest = full_join(merge1, sasExample, by = c("gvkey"))
+```
+
+
+## Anti
+
+I didn't mention the anti join before! It does exactly what it sounds like -- it finds the things that don't match. A natural curiousity is the potential purpose for such a function. Can anyone think of anything?
+
+```{r, eval = FALSE}
+antiTest = anti_join(merge1, sasExample, by = c("gvkey"))
+```
+
+## Your Turn!
+
+Let's look at these four files:
+
+```{r, eval = FALSE}
+merge1 = "https://www3.nd.edu/~sberry5/data/merge1Company.dta"
+
+merge2Hoberg = "https://www3.nd.edu/~sberry5/data/merge2Hoberg.txt"
+
+merge3McDonald = "https://www3.nd.edu/~sberry5/data/merge3McDonald.csv"
+
+sasExample = "https://www3.nd.edu/~sberry5/data/wciklink_gvkey.sas7bdat"
+
+```
+
+1.  Read those files in appropriately (look at the file extensions...or rio).
+2.  Start merging them together in any way that you can.
+
+Chained merges look like this:
+
+```{r, eval = FALSE}
+
+## DO NOT RUN:
+
+left_join(data1, data2, by = "id") %>% 
+  left_join(., data3, by = "id") %>% 
+  left_join(., data4, by = "id")
+
+```
+
+
+
+## Binding
+
+On more than just occasion, you will want to bring data together in a "stacked" manner.
+
+Imagine you have two data files that look exactly alike with regard to column names, but the values are different. This is when we could use a row bind:
+
+```{r, eval = FALSE}
+data2003 = read.csv("https://www3.nd.edu/~sberry5/data/c2003_a.csv")
+
+data2004 = read.csv("https://www3.nd.edu/~sberry5/data/c2004_a.csv")
+
+# data2013 = read.csv("https://www3.nd.edu/~sberry5/data/")
+  
+complete = rbind(data2003, data2004)
+
+```
+
+
+What if our rows were the same, but we wanted to add some columns? You said cbind, no doubt!
+
+## Data Wrangling?
+
+This is a point where we should revisit the term data wrangling. It makes sense conceptually, but it casts a certain mental image that might be limiting. What we have seen up to this point should make it abundantly clear that we are in control of our data -- this sits nicely with wrangling. What might not be so clear is the artistically forceful way that we sometimes need to make our data behave. Instead, we might want to think of ourselves as *Data Picassos*. Data preparation is often done through a series of data deconstructions -- much like making a collage. We take bits and pieces from various places and then put them together to make something coherent. This also sits nicely with out previous discussion on code golf.
+
+Therefore, we need to learn to accept a default frame of reference that allows us to break things down into smaller pieces. We are not bound to any monolith. 
+
+
+![](http://www.muralmosaic.com/Cochrane/grid.jpg)
+
+Keep this concept of *data collaging* in your mind.
+
+
+# String Cleaning 
+
+Data has strings...it is a simple fact of modern data.
+
+If you can clean strings, you can conquer any data task that gets thrown at you. To clean strings, though, you will need to learn how to use magic!
+
+
+![](http://imgs.xkcd.com/comics/regular_expressions.png)
+
+## Regular Expressions
+
+Regular expressions (regex) are wild. Regex's purpose is to match patterns in strings. 
+
+Of everything that we have and will see, regex is something that you can use in places outside of data. 
+
+Some regular expressions are very easy to understand (once you know what they mean): [A-Za-z]+
+
+Others take some intense trial and error: \\(*[0-9]{3}.*[0-9]{3}.*[0-9]{4}
+
+Learning just a little and being able to use them in a variety of settings is most helpful.
+
+Learning regular expressions in R is a bit tough, so let's go here: regexr.com
+
+
+## stringr
+
+What is the difference between <span class="func">sub</span> and <span class="func">gsub</span>?
+
+What is the difference between <span class="func">grep</span> and <span class="func">grepl</span>?
+
+Why did grep just return a bunch of numbers?
+
+What does the following do: "^\\s+|\\s+$"
+
+For the love of all that is good, what does <span class="func">regexpr</span> do?
+
+These are just a few of the questions that will come up when working with strings in base R.
+
+There is also the issue of mixed arguments. Consider grep and gsub.
+
+```{r}
+realComments = c("I love wrangling data", "stringz r fun", 
+                 "This guy is a hack", "Can't we use excel?")
+
+grep(pattern = "\\b[a-z]{2}\\b", x = realComments, value = TRUE)
+
+gsub(pattern = "(hack)", replacement = "star", x = realComments)
+```
+
+
+It is pretty subtle, but the argument order can be a bit troublesome when you are just learning or have not used them in a while. 
+
+Check these out:
+
+```{r}
+library(stringr)
+
+str_subset(string = realComments, pattern = "\\b[a-z]{2}\\b")
+
+str_replace_all(string = realComments, pattern = "(hack)", 
+                replacement = "star")
+```
+
+We now have consistent argument order and very clear names. 
+
+Clear names and consistent arguments aside, <span class="pack">stringr</span> also simplifies some previously cumbersome processes.
+
+```{r}
+matchedComments = regexpr(pattern = "love|like|enjoy", 
+                          text = realComments)
+
+regmatches(x = realComments, m = matchedComments)
+
+```
+
+This becomes the following with <span class="pack">stringr</span>:
+
+```{r}
+str_extract_all(string = realComments, 
+                pattern = "love|like|enjoy")
+```
+
+These are cute examples, but how should we use these for actual data? I am sure you remember this bit of data from yesterday:
+
+```{r}
+library(rvest)
+
+highest = read_html("https://en.wikipedia.org/wiki/List_of_highest-grossing_films") %>% 
+  html_table(fill = TRUE) %>%
+  magrittr::extract2(1)
+```
+
+
+Let's look at the structure of this data:
+
+```{r}
+str(highest)
+```
+
+Do you see any problems? If you made note of the character nature of "Worldwide gross", you were astute. R doesn't recognize dollars and commas as anything other than strings. We need to do some good tidy work here!
+
+```{r}
+
+highest = read_html("https://en.wikipedia.org/wiki/List_of_highest-grossing_films") %>% 
+  html_table(fill = TRUE) %>%
+  magrittr::extract2(1) %>% 
+  mutate(gross = stringr::str_replace_all(.$`Worldwide gross`, "\\$|,|[A-Za-z].*", ""), 
+         gross = as.numeric(gross))
+```
+
+We are saying to replace all instances in a string where we find \\$, or a comma, or any letter followed by anything for 0 or more times.
+
+If you have not worked with regular expressions before today, you might be wondering why there are two slashes in front of the dollar sign -- they are escapes. In many regex engines, you just need one escape; in R, though, you need to escape the escape!
+
+![](http://imgs.xkcd.com/comics/backslashes.png)
+
+
+Did you notice "Peak" too? Why don't you handle that one?
+
+## On Names, Regex, & Merging
+
+Occasionally, you will will want to merge or bind data, but the columns names are very different. Merge/join gives us a way to counteract this, but binding does not.
+
+When you get into those situation, you can clean up the names of the data with the same tools.
+
+If it is just a matter of case mismatch, this works:
+
+```{r, eval = FALSE}
+testDF = data.frame(camelCase = 1:10, 
+                    normalName = 1:10, 
+                    wHyGoDwHy = 1:10)
+
+names(testDF) = stringr::str_to_lower(names(testDF))
+```
+
+
+You can also do some pattern stuff if needed:
+
+```{r, eval = FALSE}
+testDF2 = data.frame(peopleDoThis7 = 1:10, 
+                     andThis.8 = 1:10, 
+                     andEvenThis_9 = 1:10)
+
+names(testDF2) = stringr::str_replace_all(names(testDF2), "\\.|_|\\W", "") 
+```
+
+
+
+Let's add another year into some data that we already saw:
+
+```{r, eval = FALSE}
+data2003 = readr::read_csv("https://www3.nd.edu/~sberry5/data/c2003_a.csv")
+
+data2004 = readr::read_csv("https://www3.nd.edu/~sberry5/data/c2004_a.csv")
+
+data2013 = readr::read_csv("https://www3.nd.edu/~sberry5/data/c2013_a.csv")
+  
+complete = rbind(data2003, data2004)
+
+## This will cause an error because of variable names!
+
+complete = rbind(complete, data2013)
+
+```
+
+Does everything still look good?
+
+# Github
+
+Github is an online version of Git. Git can be used as a repository, but its greatest power is in collaboration.
+
+Let's take a quick look at what Github does and how we can use it for our benefit.
+
+```{git, eval = FALSE}
+git config --global user.name "saberry"
+
+git config --global user.email "seth.berry@nd.edu"
+```
