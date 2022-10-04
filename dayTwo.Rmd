@@ -16,6 +16,341 @@ output:
 knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE, error = FALSE, comment = "")
 ```
 
+# The Tidyverse
+
+```{r, echo = FALSE}
+tidyverse::tidyverse_logo()
+```
+
+
+We are going to be working around in the <span class="pack">tidyverse</span> for a good chunk of our time together. The whole point of the <span class="pack">tidyverse</span> is to offer a grammar of verbs. It is going to help us in a lot of the situations that we are going to be seeing.
+
+Another great feature of the <span class="pack">tidyverse</span> is the pipe: <span class="func">%>%</span>
+
+It does the same thing as the Unix |, but | in R is an or operator. 
+
+With all of the glowing praise for the <span class="pack">tidyverse</span>, we are still going to see some <span class="pack">base</span> R. Sometimes, it will demonstrate great reasons for using the <span class="pack">tidyverse</span>. In other situations, it will help you to not be afraid to use it when situations arise.
+
+
+# Some Demonstrations 
+
+## Summary Tables
+
+```{r}
+
+library(ggplot2)
+
+plotDat = aggregate(diamonds$cut, by = list(cut = diamonds$cut), 
+                    FUN = length)
+
+colnames(plotDat)[2] = "n"
+
+plotDat
+```
+
+## Visual
+
+```{r}
+ggplot(plotDat, aes(x = cut, y = n)) +
+  geom_point(aes(size = n)) +
+  theme_minimal()
+```
+
+## (Im)Proper Plotting
+
+Look at <span class="func">help(mtcars)</span> and check out the variables. Can you spot what is wrong with this plot?
+
+```{r}
+ggplot(mtcars, aes(x = wt, y = mpg, color = am)) + 
+  geom_point() +
+  theme_minimal()
+```
+
+
+## Proper Plotting
+
+The plot below is likely better.
+
+```{r}
+library(dplyr)
+
+mtcars$amFactor = as.factor(mtcars$am) 
+
+ggplot(mtcars, aes(x = wt, y = mpg, color = amFactor)) + 
+  geom_point() +
+  theme_minimal()
+```
+
+
+## Pipes: Making Life Easier
+
+
+Recall some of the things that we just saw:
+
+```{r, eval = FALSE}
+plotDat = aggregate(diamonds$cut, by = list(cut = diamonds$cut), FUN = length)
+
+colnames(plotDat)[2] = "n"
+
+ggplot(plotDat, aes(x = cut, y = n)) +
+  geom_point(aes(size = n)) +
+  theme_minimal()
+```
+
+This is somewhat tricky code. We have to create a new object with the oft-muddy <span class="func">aggregate</span> and reset a column name (by magic number in an index, no less). 
+
+This can be made much easier with <span class="pack">dplyr</span>:
+
+```{r}
+diamonds %>% 
+  group_by(cut) %>% 
+  summarize(n = n()) %>% 
+  ggplot(., aes(x = cut, y = n)) +
+  geom_point(aes(size = n)) +
+  theme_minimal()
+  
+```
+
+It isn't a reduction in lines, but it is certainly clearer and follows a more logical thought process. This is the whole point of the <span class="pack">tidyverse</span> (and <span class="pack">dplyr</span> specifically) -- allowing you to write how you would explain the process. 
+
+As an added bonus, we don't need to create a bunch of different objects to do something simple.
+
+We can see that <span class="pack">dplyr</span> will also make the plot for am easier.
+
+```{r}
+mtcars %>% 
+  mutate(am = as.factor(am)) %>%  
+  ggplot(., aes(x = wt, y = mpg, color = am)) + 
+  geom_point() +
+  theme_minimal()
+```
+
+## On Code Golf
+
+You will often notice that a <span class="pack">dplyr</span> chunk might take a few more lines to work through than base R alone -- don't consider this as a bad thing. There will be many times in this course and in your potential work that you might think that you need to use as few lines as possible. Resist this temptation. Sometime you need to break something up into many lines and create new objects -- this ability is exactly why we use R!
+
+# The Grammar Of Data
+
+One of the major aims of the <span class="pack">tidyverse</span> is to provide a clear and consistent grammar to data manipulation. This is helpful when diving deeper into the weeds. 
+
+Do you remember this?
+
+```{r, eval = FALSE}
+highest = read_html("https://en.wikipedia.org/wiki/List_of_highest-grossing_films") %>% 
+  html_table(fill = TRUE)
+```
+
+What did we get out of this? It was a big list of data frames. If we are looking for only one thing and we know that it is the first thing, we have some options:
+
+
+```{r, eval = FALSE}
+highest = highest[[1]]
+```
+
+
+This is great for keeping the object at first and then plucking out what we want. If you want the whole thing to be together, though, we have even more options:
+
+```{r, eval = FALSE}
+highest = read_html("https://en.wikipedia.org/wiki/List_of_highest-grossing_films") %>% 
+  html_table(fill = TRUE) %>% 
+  `[[`(1)
+```
+
+
+And now we see why R mystifies people. What does is that bit of nonsense at the end. It is really just an index shortcut. Once you know how to use it, it is great; however, it will make you shake your head if you see it in the wild without knowing about it first.
+
+This is where the benefit of <span class="pack">tidyverse</span> becomes clear. 
+
+
+```{r, eval = FALSE}
+highest = read_html("https://en.wikipedia.org/wiki/List_of_highest-grossing_films") %>% 
+  html_table(fill = TRUE) %>%
+  magrittr::extract2(1)
+```
+
+
+Or...
+
+
+```{r, eval = FALSE}
+highest = read_html("https://en.wikipedia.org/wiki/List_of_highest-grossing_films") %>% 
+  html_table(fill = TRUE) %>%
+  purrr::pluck(1)
+```
+
+Both functions are doing the same thing and with slightly different names, but it is crystal-clear what they are doing.
+
+Do be careful, though, because we can have some issues in function masking and <span class="func">pluck</span> from <span class="pack">purrr</span> does something very different than <span class="func">pluck</span> from <span class="pack">dplyr</span>.
+
+
+Someone try it and tell me what happens!
+
+# Selecting 
+
+Let's check this wacky stuff out where we want all variables that start with "age" and variables that likely represent questions (x1, x2, x3, ...):
+
+```{r}
+library(lavaan)
+
+testData = HolzingerSwineford1939
+
+names(testData)
+
+keepers = c(grep("^age", names(testData), value = TRUE), 
+            paste("x", 1:9, sep = ""))
+
+testData = testData[, keepers]
+
+```
+
+
+Not only do we have another regular expression, but we also have this paste line to create variable names. It seems like too much work to do something simple!
+
+While not beautiful, these are perfectly valid ways to do this work. I have such sights to show you, but don't forget about this stuff -- you never know when you might need to use it.
+
+In base R, we have to do some chanting to select our variables. With <span class="pack">dplyr</span>, we can just use <span class="func">select</span>: 
+
+```{r}
+mtcars %>% 
+  select(mpg, cyl, am)
+```
+
+We can also drop variables with the <span class="func">-</span>:
+
+```{r}
+mtcars %>% 
+  select(-vs)
+```
+
+We also have several helper functions that we can use:
+
+```{r, eval = FALSE}
+HolzingerSwineford1939 %>% 
+  select(num_range("x", 1:9), starts_with("age"), 
+         matches("^s.*.l$"))
+```
+
+
+#### Not Important, But Helpful
+
+Changing variable position in R is a pain:
+
+```{r}
+head(HolzingerSwineford1939[, c(1, 7:15, 2:6)])
+```
+
+```{r}
+HolzingerSwineford1939 %>% 
+  select(id, starts_with("x"), everything()) %>% 
+  head()
+```
+
+
+## Your Turn!
+
+1.  Use that Stata test file.
+
+2.  Grab every lvi, effect, leader, and cred variable
+
+3.  Use <span class="func">summary</span> to understand your data.
+
+4.  Now, just keep every lvi variable.
+
+5.  Use a corrplot to see relationships.
+
+    - corrplot needs a correlation matrix (use cor)
+
+```{r, eval = FALSE}
+# Just to give you an idea about how it works!
+
+install.packages("corrplot")
+
+data.frame(x = rnorm(10), y = rnorm(10)) %>% 
+  cor() %>% 
+  corrplot()
+```
+
+# Subsetting/Filtering 
+
+One of the more frequent tasks is related to filtering/subsetting your data. You often want to impose some types of rules on your data (e.g., US only, date ranges).
+
+When we use <span class="func">filter</span>, we are specifying what it is that we want to keep.
+
+Keep this or that:
+
+```{r}
+mtcars %>% 
+  filter(cyl == 4 | cyl == 8) %>% 
+  summary()
+```
+
+Keep this and that:
+
+```{r}
+mtcars %>% 
+  filter(cyl == 4 & mpg > 25) %>% 
+  summary()
+```
+
+Filter this out:
+
+```{r}
+mtcars %>% 
+  filter(cyl != 4) %>% 
+  summary()
+```
+
+Naturally, it can also take a function
+
+```{r}
+mtcars %>% 
+  filter(mpg < mean(mpg)) %>% 
+  summary()
+```
+
+
+## Your Turn
+
+For now, we are going to stick with that stataExample data. 
+
+1.  Select the same variables, but also include Rater.
+
+2.  Filter the data on Rater -- check the values and filter both ways.
+
+3.  Now check those correlations again!
+
+4.  Throw the Gender variable in and filter on that.
+
+# New Variables and Recoding 
+
+If we want to do things in a tidy chunk, we need to use <span class="func">mutate</span>.
+
+```{r}
+mtcars = mtcars %>% 
+  mutate(roundedMPG = round(mpg))
+```
+
+There is also <span class="func">transmute</span>. Can anyone venture a guess as to what it might do?
+
+## Recoding
+
+```{r, eval = FALSE}
+recode(mtcars$vs, `0` = "v", `1` = "s")
+```
+
+## Your Turn!
+
+1.  For the sake of demonstration, select only the first 10 lvi variables and everything else.
+
+2.  Keep only observations with Rater == 0. 
+
+3.  Assume that the first 5 lvi variables (01 through 05) are scores for one assessment and the next five (06 through 10) are scores for another assessment.
+
+4.  Create two new variables to capture the mean of those scores.
+
+  - You will need to use the <span class="func">rowwise</span> function ahead of mutate.
+  
+  - You can use the <span class="func">mean</span> function, but you will have to wrap the variables in <span class="func">c()</span>
 
 
 # Summarizing And Grouping
@@ -46,13 +381,13 @@ Because we are dealing with the tidyverse, variable selection is included.
 
 ```{r}
 mtcars %>% 
-  summarize_at(vars(starts_with("c")), 
-               funs(mean, sd), na.rm = TRUE)
+  summarize(across(starts_with("c"), 
+                   list(mean = mean, sd = sd), 
+                   na.rm = TRUE))
 ```
 
 
 Combining group_by with summarize welcomes even more power to summarize data.
-
 
 ```{r}
 mtcars %>% 
@@ -60,7 +395,6 @@ mtcars %>%
   summarize(meanMPG = mean(mpg), 
             sdMPG = sd(mpg))
 ```
-
 
 You are not limited to single <span class="func">group_by statements</span>!
 
@@ -118,7 +452,6 @@ There is a bit of a hierarchy in R with regard to reshaping data. The <span clas
 The following chunk of code needs the <span class="func">as.data.frame()</span>. Why, you might ask? Almost everything in <span class="pack">dplyr</span> converts data to a <span class="pack">tibble</span>. Many base R functions will go crazy when they encounter a tibble, so you need to explicitly make it a data frame. You might ask what is the trouble tibbles (anyone?)...
 
 ```{r}
-
 library(ggplot2)
 
 data("starwars")
@@ -134,30 +467,6 @@ as.data.frame(starwars) %>%
   theme_minimal()
   
 ```
-
-
-## reshape
-
-Let's use the <span class="pack">reshape</span> package to do the same thing. You are going to notice a few differences in the function arguments. The <span class="pack">reshape</span> packages have this notion of melting (going from wide to long) and casting (going from long to wide). Melting makes plenty of sense to me, but I can only imagine what casting means. 
-
-```{r}
-starwars %>% 
-  as.data.frame() %>% 
-  filter(species == "Human" & 
-           grepl("(Skywalker)|(Rey)|(Vader)|(Kylo)", 
-                 .$name)) %>% 
-  select(name, height, mass) %>% 
-  reshape::melt.data.frame(., id.vars = "name", 
-                           measure.vars = 2:3, 
-                           variable_name = "type", na.rm = TRUE) %>% 
-  ggplot(., aes(x = name, y = value, color = type)) + 
-  geom_point(size = 3.5) +
-  scale_color_brewer(palette = "Dark2") +
-  theme_minimal()
-```
-
-
-Reshape introduced the vernacular, but I really do not see a reason to use it anymore.
 
 ## reshape2
 
@@ -184,41 +493,27 @@ Allows for <span class="pack">dplyr</span> variable selection and a little bit m
 starwars %>% 
   filter(species == "Human" & grepl("(Skywalker)|(Rey)|(Vader)|(Kylo)", .$name)) %>% 
   select(name, height, mass) %>% 
-  tidyr::gather(., key = type, value = value, -name) %>% 
-  ggplot(., aes(x = name, y = value, color = type)) + 
-  geom_point(size = 3.5) +
-  scale_color_brewer(palette = "Dark2") +
-  theme_minimal()
+  tidyr::pivot_longer(cols = height:mass, names_to = "variable")
 ```
 
-The complimentary function to <span class="func">gather</span> is <span class="func">spread</span>:
 
 ```{r}
 library(tidyr)
 
-starwarsLong = starwars %>% 
+starwarsLong <- starwars %>% 
   filter(species == "Human" & grepl("(Skywalker)|(Rey)|(Vader)|(Kylo)", .$name)) %>% 
   select(name, height, mass) %>% 
-  gather(., key = type, value = value, -name)
+  tidyr::pivot_longer(cols = height:mass, names_to = "variable")
 
-starwarsLong
+
 
 starwarsLong %>% 
-  spread(., key = type, value = value)
+  tidyr::pivot_wider(names_from = "variable", 
+              values_from = "value")
 
 ```
 
-
 In addition to reshaping, <span class="pack">tidyr</span> has some handy functions for splitting (<span class="func">separate</span>) and pasting (<span class="func">unite</span>) columns.
-
-## Others
-
-While we won't dive into it, the <span class="pack">splitstackshape</span> package is very handy for reshaping. It also has additional uses for column manipulations
-
-## Your Turn
-
-
-
 
 # Merging 
 
@@ -263,20 +558,18 @@ With that knowledge, can we map the various combinations of all.x and all.y?
 ## Left
 
 ```{r, eval = FALSE}
-merge1 = haven::read_dta("https://www3.nd.edu/~sberry5/data/merge1Company.dta")
+merge1 <- haven::read_dta("https://www3.nd.edu/~sberry5/data/merge1Company.dta")
 
-sasExample = haven::read_sas("https://www3.nd.edu/~sberry5/data/wciklink_gvkey.sas7bdat")
+sasExample <- haven::read_sas("https://www3.nd.edu/~sberry5/data/wciklink_gvkey.sas7bdat")
 
-leftTest = left_join(merge1, sasExample, by = "gvkey")
+leftTest <- left_join(merge1, sasExample, by = "gvkey")
 ```
-
 
 If we want to join on multiple columns, we could provide a character vector:
 
 ```{r, eval = FALSE}
 leftTestMultiple = left_join(merge1, sasExample, by = c("gvkey", "coname"))
 ```
-
 
 If our names don't match, we need to provide both:
 
@@ -338,7 +631,7 @@ sasExample = "https://www3.nd.edu/~sberry5/data/wciklink_gvkey.sas7bdat"
 
 ```
 
-1.  Read those files in appropriately (look at the file extensions...or rio).
+1.  Read those files in appropriately.
 2.  Start merging them together in any way that you can.
 
 Chained merges look like this:
@@ -387,181 +680,42 @@ Therefore, we need to learn to accept a default frame of reference that allows u
 Keep this concept of *data collaging* in your mind.
 
 
-# String Cleaning 
-
-Data has strings...it is a simple fact of modern data.
-
-If you can clean strings, you can conquer any data task that gets thrown at you. To clean strings, though, you will need to learn how to use magic!
-
-
-![](http://imgs.xkcd.com/comics/regular_expressions.png)
-
-## Regular Expressions
-
-Regular expressions (regex) are wild. Regex's purpose is to match patterns in strings. 
-
-Of everything that we have and will see, regex is something that you can use in places outside of data. 
-
-Some regular expressions are very easy to understand (once you know what they mean): [A-Za-z]+
-
-Others take some intense trial and error: \\(*[0-9]{3}.*[0-9]{3}.*[0-9]{4}
-
-Learning just a little and being able to use them in a variety of settings is most helpful.
-
-Learning regular expressions in R is a bit tough, so let's go here: regexr.com
-
-
-## stringr
-
-What is the difference between <span class="func">sub</span> and <span class="func">gsub</span>?
-
-What is the difference between <span class="func">grep</span> and <span class="func">grepl</span>?
-
-Why did grep just return a bunch of numbers?
-
-What does the following do: "^\\s+|\\s+$"
-
-For the love of all that is good, what does <span class="func">regexpr</span> do?
-
-These are just a few of the questions that will come up when working with strings in base R.
-
-There is also the issue of mixed arguments. Consider grep and gsub.
+# R & SQL
 
 ```{r}
-realComments = c("I love wrangling data", "stringz r fun", 
-                 "This guy is a hack", "Can't we use excel?")
+library(dplyr)
+library(DBI)
+library(dbplyr)
+library(odbc)
 
-grep(pattern = "\\b[a-z]{2}\\b", x = realComments, value = TRUE)
+odbcListDrivers()
 
-gsub(pattern = "(hack)", replacement = "star", x = realComments)
+con <- DBI::dbConnect(odbc(),
+                      Driver = "ODBC Driver 17 for SQL Server",
+                      Server = "mcobsql.business.nd.edu",
+                      UID = "MSBAstudent",
+                      PWD = "SQL%database!Mendoza",
+                      Port = 3306, 
+                      Database = "ChicagoCrime")
+
+dbListFields(con, "wards")
+
+select_q <- dbSendQuery(con, "SELECT id, block FROM crimes")
+
+res <- dbFetch(select_q)
+
+dbClearResult(select_q)
+
+table_1 <- tbl(con, 
+               from = dbplyr::in_schema("dbo", "crimes"))
+
+sub_table <- table_1 %>% 
+  select(id:longitude)
+
+show_query(sub_table)
+
+sub_df <- sub_table %>% collect()
+
+DBI::dbDisconnect(con)
 ```
 
-
-It is pretty subtle, but the argument order can be a bit troublesome when you are just learning or have not used them in a while. 
-
-Check these out:
-
-```{r}
-library(stringr)
-
-str_subset(string = realComments, pattern = "\\b[a-z]{2}\\b")
-
-str_replace_all(string = realComments, pattern = "(hack)", 
-                replacement = "star")
-```
-
-We now have consistent argument order and very clear names. 
-
-Clear names and consistent arguments aside, <span class="pack">stringr</span> also simplifies some previously cumbersome processes.
-
-```{r}
-matchedComments = regexpr(pattern = "love|like|enjoy", 
-                          text = realComments)
-
-regmatches(x = realComments, m = matchedComments)
-
-```
-
-This becomes the following with <span class="pack">stringr</span>:
-
-```{r}
-str_extract_all(string = realComments, 
-                pattern = "love|like|enjoy")
-```
-
-These are cute examples, but how should we use these for actual data? I am sure you remember this bit of data from yesterday:
-
-```{r}
-library(rvest)
-
-highest = read_html("https://en.wikipedia.org/wiki/List_of_highest-grossing_films") %>% 
-  html_table(fill = TRUE) %>%
-  magrittr::extract2(1)
-```
-
-
-Let's look at the structure of this data:
-
-```{r}
-str(highest)
-```
-
-Do you see any problems? If you made note of the character nature of "Worldwide gross", you were astute. R doesn't recognize dollars and commas as anything other than strings. We need to do some good tidy work here!
-
-```{r}
-
-highest = read_html("https://en.wikipedia.org/wiki/List_of_highest-grossing_films") %>% 
-  html_table(fill = TRUE) %>%
-  magrittr::extract2(1) %>% 
-  mutate(gross = stringr::str_replace_all(.$`Worldwide gross`, "\\$|,|[A-Za-z].*", ""), 
-         gross = as.numeric(gross))
-```
-
-We are saying to replace all instances in a string where we find \\$, or a comma, or any letter followed by anything for 0 or more times.
-
-If you have not worked with regular expressions before today, you might be wondering why there are two slashes in front of the dollar sign -- they are escapes. In many regex engines, you just need one escape; in R, though, you need to escape the escape!
-
-![](http://imgs.xkcd.com/comics/backslashes.png)
-
-
-Did you notice "Peak" too? Why don't you handle that one?
-
-## On Names, Regex, & Merging
-
-Occasionally, you will will want to merge or bind data, but the columns names are very different. Merge/join gives us a way to counteract this, but binding does not.
-
-When you get into those situation, you can clean up the names of the data with the same tools.
-
-If it is just a matter of case mismatch, this works:
-
-```{r, eval = FALSE}
-testDF = data.frame(camelCase = 1:10, 
-                    normalName = 1:10, 
-                    wHyGoDwHy = 1:10)
-
-names(testDF) = stringr::str_to_lower(names(testDF))
-```
-
-
-You can also do some pattern stuff if needed:
-
-```{r, eval = FALSE}
-testDF2 = data.frame(peopleDoThis7 = 1:10, 
-                     andThis.8 = 1:10, 
-                     andEvenThis_9 = 1:10)
-
-names(testDF2) = stringr::str_replace_all(names(testDF2), "\\.|_|\\W", "") 
-```
-
-
-
-Let's add another year into some data that we already saw:
-
-```{r, eval = FALSE}
-data2003 = readr::read_csv("https://www3.nd.edu/~sberry5/data/c2003_a.csv")
-
-data2004 = readr::read_csv("https://www3.nd.edu/~sberry5/data/c2004_a.csv")
-
-data2013 = readr::read_csv("https://www3.nd.edu/~sberry5/data/c2013_a.csv")
-  
-complete = rbind(data2003, data2004)
-
-## This will cause an error because of variable names!
-
-complete = rbind(complete, data2013)
-
-```
-
-Does everything still look good?
-
-# Github
-
-Github is an online version of Git. Git can be used as a repository, but its greatest power is in collaboration.
-
-Let's take a quick look at what Github does and how we can use it for our benefit.
-
-```{git, eval = FALSE}
-git config --global user.name "saberry"
-
-git config --global user.email "seth.berry@nd.edu"
-```
