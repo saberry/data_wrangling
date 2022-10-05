@@ -78,6 +78,7 @@ cars[1:10, "dist"]
 
 
 ## $  
+
 $ is a shortcut used for accessing names within a data.frame
 
 ```{r}
@@ -90,13 +91,12 @@ It is practically equivalent to:
 cars[, "speed"]
 ```
 
-
 ## "" and ''
   
 "" and '' are both used to specify strings
 
 ```{r}
-z = c("string1", 'string2', "string3")
+z <- c("string1", 'string2', "string3")
 ```
 
 ## ``
@@ -121,7 +121,6 @@ cars[cars$speed == 20, ]
 
 ## !=
   
-
 != is not equal to
 
 ```{r}
@@ -144,7 +143,6 @@ cars[cars$speed == 18 | cars$speed == 20, ]
 ```{r}
 cars[cars$speed == 18 & cars$dist == 56, ]
 ```
-
 
 ## %*%
   
@@ -178,7 +176,6 @@ See the magrittr package for more potential pipes.
 <a href="https://cran.r-project.org/web/views/">CRAN Task Views</a> will help you find packages that do what you want to do. They are arranged into broad categories that then get broken down.
 
 There is also <a href="https://rseek.org/">rseek</a>
-
 
 # Package Installation
 
@@ -324,8 +321,7 @@ state.abb
 
 match(c("January", "February"), month.name)
 
-
-testWords = c("Bad", "Poor", "Great", "Awesome")
+testWords <- c("Bad", "Poor", "Great", "Awesome")
 
 dfExample[dfExample$facVar %in% testWords, ]
 
@@ -342,13 +338,12 @@ There are many ways to select variables with <span class="pack">base</span> R:
 ```{r, eval = FALSE}
 mtcars[, c(1:5, 7:8)]
 
-keepers = c("mpg", "cyl", "disp", "hp", "drat", "qsec", "vs")
+keepers <- c("mpg", "cyl", "disp", "hp", "drat", "qsec", "vs")
 
 mtcars[, keepers]
 
 mtcars[, c("mpg", grep("^c", names(mtcars), values = TRUE))]
 ```
-
 
 You can also drop variables:
 
@@ -360,23 +355,18 @@ dropVars = c("vs", "drat")
 mtcars[, !(names(mtcars) %in% dropVars)]
 ```
 
-Issues?
-
-For starters, the magic numbers are a no-go. The keepers lines could work, but would be a pain if we had a lot of variables. 
-
-Let's check this wacky stuff out where we want all variables that start with "age" and variables that likely represent questions (x1, x2, x3, ...):
 
 ```{r}
 library(lavaan)
 
-testData = HolzingerSwineford1939
+testData <- HolzingerSwineford1939
 
 names(testData)
 
-keepers = c(grep("^age", names(testData), value = TRUE), 
+keepers <- c(grep("^age", names(testData), value = TRUE), 
             paste("x", 1:9, sep = ""))
 
-testData = testData[, keepers]
+testData <- testData[, keepers]
 
 ```
 
@@ -404,7 +394,6 @@ You will need to recode variables at some point. Depending on the nature of the 
 You will need to do some more elaborate stuff:
 
 ```{r, eval = FALSE}
-
 mtcars$mpgLoHi = 0
 
 mtcars$mpgLoHi[mtcars$mpg > median(mtcars$mpg)] = 1
@@ -434,6 +423,7 @@ cars$row_means <- apply(X = cars,
       MARGIN = 1, 
       FUN = mean)
 ```
+
 Whenever you need to apply a function over the rows or columns of a data frame, apply has you covered.
 
 One of the most useful members of the apply family is lapply. You can give it a vector or a list, perform a task over that object, and then always get a list returned.
@@ -553,8 +543,6 @@ result <- mapply(point_function,
 
 result <- do.call('rbind', result)
 ```
-
-
 
 # Data Import 
 

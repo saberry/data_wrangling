@@ -1,0 +1,196 @@
+---
+title: "Using data.table -- R's third dialect"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# What Is It?
+
+The most simple descriptor is that data.table extends base R's functionality and makes it faster. It also borrows from dplyr's notion of piping operations. A departure from typical base R is that data.table includes an extra position in the brackets.
+
+```{r}
+library(data.table)
+
+nba_data <- fread("https://www.nd.edu/~sberry5/data/nba_data.csv")
+
+str(nba_data)
+```
+
+## Selection
+
+```{r}
+nba_data[, list(PTS, TEAM_ID, GAME_ID)]
+
+nba_data[, list(PTS, pt_calc = PTS*1.5, TEAM_ID, GAME_ID)]
+```
+
+## Filtering
+
+```{r}
+nba_data[PTS > 10, ]
+
+nba_data[PTS > 10]
+```
+
+## Grouping
+
+```{r}
+nba_data[, list(avg_pts = mean(PTS)), by = list(TEAM_ID, GAME_ID)]
+```
+
+## Special Symbols
+
+```{r}
+nba_data[, .N]
+
+nba_data[, .N, by = PLAYER_NAME]
+```
+
+```{r}
+nba_data[, grp := .GRP, by = list(PLAYER_NAME)]
+```
+
+```{r}
+setkey(nba_data, PLAYER_NAME)
+```
+
+```{r}
+nba_data[, player_game_number := sequence(.N), by = key(nba_data)]
+```
+
+```{r}
+nba_data[, .SD, .SDcols = FGM:FT_PCT]
+
+nba_data[, .SD, .SDcols = c("PLAYER_NAME", "FGM")]
+
+nba_data[, .SD, .SDcols = patterns("PCT")]
+```
+
+```{r}
+fg_vars <- c("FG_PCT", "FG3_PCT", "FT_PCT")
+
+nba_data[,  lapply(.SD, function(x) x * 100), .SDcols = fg_vars]
+```
+
+## Chaining Indices
+
+```{r}
+top_pt_performance <- 
+  nba_data[, 
+           list(player_game_number = sequence(.N), PTS), 
+           by = key(nba_data)
+  ][
+    order(PTS), 
+    .SD[.N], 
+    by = PLAYER_NAME
+  ][PTS > 40]
+```
+
+## Merging
+
+What comes below might not be immediately clear, but stick with me for a minute:
+
+```{r}
+library(glue)
+library(httr)
+library(jsonlite)
+
+all_players <- purrr::map_df(0:38, ~{
+  Sys.sleep(runif(1, 0, 1))
+  
+  base_link <- glue("https://www.balldontlie.io/api/v1/players?page={.x}&per_page=100")
+  
+  request <- GET(base_link)
+  
+  json_data <- fromJSON(content(request, as = "text"))
+  
+  player_data <- json_data$data
+  
+  player_data
+})
+
+all_players$full_name <- paste(all_players$first_name, 
+                               all_players$last_name, 
+                               sep = " ")
+
+all_players <- all_players[, 
+                           c("full_name", "height_feet", 
+                             "height_inches", "weight_pounds")]
+
+all_players <- as.data.table(all_players)
+```
+
+Now that we have that data, we can perform a join!
+
+```{r}
+all_players <- all_players[top_pt_performance, on = "full_name==PLAYER_NAME"]
+```
+
+```{r}
+all_players[, 
+            total_height := height_feet * 12 + height_inches
+]
+```
+
+```{r}
+library(ggplot2)
+
+all_players$plot_name <- gsub("\\s", "\n", all_players$full_name)
+
+ggplot(all_players, aes(weight_pounds, PTS, color = player_game_number, 
+                        label = plot_name)) +
+  geom_text() +
+  theme_minimal()
+```
+
+## Why Care?
+
+1. You want to be one of the few people who can read and write the 3 major R dialects. 
+
+2. What are the goals. If you need something rapid, the tidyverse is great. However, it doesn't always play nicely in the broader ecosystem. The beauty of base R is that it doesn't really change, but it is slow. 
+
+3. Speed
+
+Let's see how some basic operations work.
+
+```{r}
+library(microbenchmark)
+
+nba_df <- as.data.frame(nba_data)
+
+nba_tibble <- as_tibble(nba_data)
+
+microbenchmark({nba_df[nba_df$PTS > 15, ]}, 
+               {filter(nba_tibble, PTS > 15)}, 
+               {nba_data[PTS > 15]})
+```
+
+Even for a simple operation, that is pretty convincing.
+
+Now with something a little trickier:
+
+```{r}
+base_order <- function() {
+  nba_df[nba_df$PTS > 15, c("PTS", "PLAYER_NAME")] |> 
+    (\(x) x[order(x$PTS), ])()
+}
+
+dplyr_order <- function() {
+  nba_tibble %>% 
+    filter(PTS > 15) %>% 
+    select(PTS, PLAYER_NAME) %>% 
+    arrange(PTS)
+}
+
+dt_order <- function() {
+  nba_data[PTS > 15, list(PTS, PLAYER_NAME)][order(PTS)]
+}
+
+microbenchmark(base_order(), 
+               dplyr_order(), 
+               dt_order())
+```
+
