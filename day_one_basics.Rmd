@@ -127,7 +127,6 @@ cars[cars$speed == 20, ]
 cars[cars$speed != 20, ]
 ```
 
-
 ## |  
 
 | is an or operator
@@ -191,7 +190,6 @@ If you want to install multiple, you need to use a character vector:
 install.packages(c("tidyverse", "psych", "Hmisc"))
 ```
 
-
 If you want to install something from Github:
 
 ```{r, eval = FALSE}
@@ -243,7 +241,6 @@ orderedFacs <- ordered(facs,
 orderedFacs
 ```
 
-
 # Data Structures
 
 At our most basic, we have a vector. Think of it a just a basic list of numbers:
@@ -268,7 +265,6 @@ numericMatrix <- matrix(1:25, nrow = 5, ncol = 5)
 numericMatrix
 ```
 
-
 If we have data of different types, we are dealing with data frames:
 
 ```{r}
@@ -281,6 +277,13 @@ dfExample <- data.frame(numVar = 1:3,
 summary(dfExample)
 ```
 
+```{r}
+str(dfExample)
+
+is.data.frame(dfExample)
+
+is.list(dfExample)
+```
 
 We also have lists. Lists can contain any number of any thing within the different list entries:
 
@@ -304,12 +307,14 @@ listExample[[3]]
 listExample[[5]][[2]]
 ```
 
+As play with more data (especially from the web), you will see even more lists.
+
 # Useful Functions
 
 There are many functions that will be helpful, but here are a few easy ones:
 
 ```{r}
-sum(1:10, na.rm = TRUE)
+sum(c(1:10, NA), na.rm = TRUE)
 
 mean(1:10, na.rm = TRUE)
 
@@ -326,7 +331,6 @@ testWords <- c("Bad", "Poor", "Great", "Awesome")
 dfExample[dfExample$facVar %in% testWords, ]
 
 dfExample[!(dfExample$facVar %in% testWords), ]
-
 ```
 
 # Selecting 
@@ -350,7 +354,7 @@ You can also drop variables:
 ```{r}
 mtcars[, -c(1:2)]
 
-dropVars = c("vs", "drat")
+dropVars <- c("vs", "drat")
 
 mtcars[, !(names(mtcars) %in% dropVars)]
 ```
@@ -367,13 +371,12 @@ keepers <- c(grep("^age", names(testData), value = TRUE),
             paste("x", 1:9, sep = ""))
 
 testData <- testData[, keepers]
-
 ```
 
 
 # Subsetting/Filtering 
 
-One of the more frequent tasks is related to filtering/subsetting your data. You often want to impose some types of rules on your data (e.g., US only, date ranges).
+One of the more frequent tasks is related to filtering/subsetting your data. You often want to impose some type of rules on your data (e.g., US only, date ranges).
 
 R gives us all the ability in the world to filter data.
 
@@ -394,14 +397,13 @@ You will need to recode variables at some point. Depending on the nature of the 
 You will need to do some more elaborate stuff:
 
 ```{r, eval = FALSE}
-mtcars$mpgLoHi = 0
+mtcars$mpgLoHi <- 0
 
-mtcars$mpgLoHi[mtcars$mpg > median(mtcars$mpg)] = 1
+mtcars$mpgLoHi[mtcars$mpg > median(mtcars$mpg)] <- 1
 ```
 
-
 ```{r, eval = FALSE}
-mtcars$mpgLoHi = ifelse(mtcars$mpg > median(mtcars$mpg), 1, 0)
+mtcars$mpgLoHi <- ifelse(mtcars$mpg > median(mtcars$mpg), 1, 0)
 ```
 
 # The apply family
@@ -421,6 +423,14 @@ What we just did was to apply the mean function over the rows (MARGIN = 1) of th
 ```{r}
 cars$row_means <- apply(X = cars, 
       MARGIN = 1, 
+      FUN = mean)
+```
+
+If `MARGIN = 1` works over the rows, what would be the alternative:
+
+```{r}
+apply(X = cars, 
+      MARGIN = 2, 
       FUN = mean)
 ```
 
@@ -490,7 +500,7 @@ results <- mapply(my_func, x = 1:10, y = 1:20, SIMPLIFY = FALSE)
 do.call('rbind', results)
 ```
 
-These also provide an excellent alternative to most nested for loops:
+The mapply function also provides an excellent alternative to most nested for loops:
 
 ```{r}
 nba_data <- read.csv("https://www.nd.edu/~sberry5/data/nba_data.csv")
@@ -544,6 +554,8 @@ result <- mapply(point_function,
 result <- do.call('rbind', result)
 ```
 
+In the end, that particular function is a long way around doing an aggregate/group_by & summarize.
+
 # Data Import 
 
 Importing data is often the easiest part (never too hard to import a nice .csv). Sometimes, though, we need some other strategies.
@@ -578,7 +590,7 @@ Try the following:
 ```{r, eval = FALSE}
 library(readr)
 
-readrTest = read_delim("https://download.bls.gov/pub/time.series/ce/ce.data.42a.RetailTrade.Employment", 
+readrTest <- read_delim("https://download.bls.gov/pub/time.series/ce/ce.data.42a.RetailTrade.Employment", 
                        delim = "\t")
 ```
 
@@ -586,22 +598,18 @@ readrTest = read_delim("https://download.bls.gov/pub/time.series/ce/ce.data.42a.
 ```{r, eval = FALSE}
 library(data.table)
 
-dtTest = fread("https://download.bls.gov/pub/time.series/ce/ce.data.42a.RetailTrade.Employment", 
+dtTest <- fread("https://download.bls.gov/pub/time.series/ce/ce.data.42a.RetailTrade.Employment", 
                sep = "\t")
 ```
-
 
 That SDC file that might have taken a few minutes will now take just a few seconds:
 
 ```{r, eval = FALSE}
-sdc = read_delim("https://www3.nd.edu/~sberry5/data/sdcTest.txt", 
+sdc <- read_delim("https://www3.nd.edu/~sberry5/data/sdcTest.txt", 
                  delim = "^")
 ```
 
-
 Pretty awesome, right?
-
-While <span class="pack">readr</span> works wonderfully on the read and write side, <span class="pack">data.table</span> is great for wrangling data that is a bit on the big side and is all together blazing fast. However, it does not shy away from confusing syntax and weird conventions. With that in mind, we won't be using it in this class, but do keep it in the back of your mind.  
 
 At times, you will get data in some proprietary format. That is when you need to turn to other places.
 
@@ -609,11 +617,9 @@ At times, you will get data in some proprietary format. That is when you need to
 
 Download the following Excel file: https://www3.nd.edu/~sberry5/data/excelTest.xlsx
 
-
 ```{r, eval = FALSE}
 readxl::read_excel(path = "")
 ```
-
 
 What do we know about Excel workbooks? Check out the help on <span class="pack">readxl</span> and let me know our path forward.
 
@@ -622,7 +628,6 @@ What do we know about Excel workbooks? Check out the help on <span class="pack">
 ```{r, eval = FALSE}
 haven::read_sas(data_file = "https://www3.nd.edu/~sberry5/data/wciklink_gvkey.sas7bdat")
 ```
-
 
 ## Stata
 
@@ -639,7 +644,6 @@ haven::read_spss(file = "https://www3.nd.edu/~sberry5/data/spssExample.sav",
                  user_na = "-99")
 ```
 
-
 ## HTML
 
 Depending on your needs, reading an html table into R is getting to be too easy.
@@ -647,16 +651,15 @@ Depending on your needs, reading an html table into R is getting to be too easy.
 ```{r, eval = FALSE}
 library(rvest)
 
-cpi = read_html("http://www.usinflationcalculator.com/inflation/consumer-price-index-and-annual-percent-changes-from-1913-to-2008/") %>% 
-  html_table(fill = TRUE)
+cpi <- read_html("http://www.usinflationcalculator.com/inflation/consumer-price-index-and-annual-percent-changes-from-1913-to-2008/") %>% 
+  html_table()
 ```
-
 
 Things might get a bit tricky:
 
 ```{r, eval = FALSE}
-highest = read_html("https://en.wikipedia.org/wiki/List_of_highest-grossing_films") %>% 
-  html_table(fill = TRUE)
+highest <- read_html("https://en.wikipedia.org/wiki/List_of_highest-grossing_films") %>% 
+  html_table()
 ```
 
 ## Nested Structures
@@ -670,12 +673,11 @@ Web-based graphics started getting popular not too long ago. Generally, stats pe
 There are a few JSON-reading packages in R, but jsonlite tends to work pretty well.
 
 ```{r, eval = FALSE}
-fjsonTest = jsonlite::read_json(path = "https://www3.nd.edu/~sberry5/data/optionsDataBrief.json", 
+fjsonTest <- jsonlite::read_json(path = "https://www3.nd.edu/~sberry5/data/optionsDataBrief.json", 
                                 simplifyVector = TRUE)
 ```
 
-
-This is a very simple form of JSON. We are going to see a hairier version of this data in the coming days. 
+This is a very simple form of JSON.
 
 #### JSON Dangers
 
@@ -694,17 +696,16 @@ jsonlite::validate("https://www3.nd.edu/~sberry5/data/reviews_Musical_Instrument
 If we would want to read that in as true JSON, we would need to do some work:
 
 ```{r, eval = FALSE}
-musicalInstruments = readLines("https://www3.nd.edu/~sberry5/data/reviews_Musical_Instruments_5.json")
+musicalInstruments <- readLines("https://www3.nd.edu/~sberry5/data/reviews_Musical_Instruments_5.json")
 
-musicalInstruments = paste(unlist(lapply(musicalInstruments, function(x) {
+musicalInstruments <- paste(unlist(lapply(musicalInstruments, function(x) {
   paste(x, ",", sep = "")
 })), collapse = "")
 
-musicalInstruments = paste("[", musicalInstruments, "]", sep = "")
+musicalInstruments <- paste("[", musicalInstruments, "]", sep = "")
 
-musicalInstruments = gsub("},]", "}]", musicalInstruments)
+musicalInstruments <- gsub("},]", "}]", musicalInstruments)
 ```
-
 
 ## Mass Reading
 
@@ -717,9 +718,9 @@ If you have two files, you might be able to get away with brute force:
 ```{r, eval = FALSE}
 # DO NOT RUN:
 
-myData1 = read.csv("test.csv")
+myData1 <- read.csv("test.csv")
 
-myData2 = read.csv("test2.csv")
+myData2 <- read.csv("test2.csv")
 ```
 
 Would you want to do this for 5 files? What about 100? Or 1000? I will answer it for you: no!
@@ -729,11 +730,11 @@ The chunks below introduce some very important functions. We are going to see <s
 ```{r, eval = FALSE}
 # DO NOT RUN:
 
-allFiles = list.files(path = "", all.files = TRUE, full.names = TRUE, 
+allFiles <- list.files(path = "", all.files = TRUE, full.names = TRUE, 
                       recursive = TRUE, include.dirs = FALSE)
 
-allFilesRead = lapply(allFiles, function(x) read.csv(x, stringsAsFactors = FALSE))
+allFilesRead <- lapply(allFiles, 
+                       function(x) read.csv(x, stringsAsFactors = FALSE))
 
-allData = do.call("rbind", allFilesRead)
+allData <- do.call("rbind", allFilesRead)
 ```
-

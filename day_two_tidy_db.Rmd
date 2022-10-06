@@ -37,10 +37,9 @@ With all of the glowing praise for the <span class="pack">tidyverse</span>, we a
 ## Summary Tables
 
 ```{r}
-
 library(ggplot2)
 
-plotDat = aggregate(diamonds$cut, by = list(cut = diamonds$cut), 
+plotDat <- aggregate(diamonds$cut, by = list(cut = diamonds$cut), 
                     FUN = length)
 
 colnames(plotDat)[2] = "n"
@@ -74,7 +73,7 @@ The plot below is likely better.
 ```{r}
 library(dplyr)
 
-mtcars$amFactor = as.factor(mtcars$am) 
+mtcars$amFactor <- as.factor(mtcars$am) 
 
 ggplot(mtcars, aes(x = wt, y = mpg, color = amFactor)) + 
   geom_point() +
@@ -84,11 +83,10 @@ ggplot(mtcars, aes(x = wt, y = mpg, color = amFactor)) +
 
 ## Pipes: Making Life Easier
 
-
 Recall some of the things that we just saw:
 
 ```{r, eval = FALSE}
-plotDat = aggregate(diamonds$cut, by = list(cut = diamonds$cut), FUN = length)
+plotDat <- aggregate(diamonds$cut, by = list(cut = diamonds$cut), FUN = length)
 
 colnames(plotDat)[2] = "n"
 
@@ -136,52 +134,43 @@ One of the major aims of the <span class="pack">tidyverse</span> is to provide a
 Do you remember this?
 
 ```{r, eval = FALSE}
-highest = read_html("https://en.wikipedia.org/wiki/List_of_highest-grossing_films") %>% 
-  html_table(fill = TRUE)
+highest <- read_html("https://en.wikipedia.org/wiki/List_of_highest-grossing_films") %>% 
+  html_table()
 ```
 
 What did we get out of this? It was a big list of data frames. If we are looking for only one thing and we know that it is the first thing, we have some options:
 
-
 ```{r, eval = FALSE}
-highest = highest[[1]]
+highest <- highest[[1]]
 ```
-
 
 This is great for keeping the object at first and then plucking out what we want. If you want the whole thing to be together, though, we have even more options:
 
 ```{r, eval = FALSE}
-highest = read_html("https://en.wikipedia.org/wiki/List_of_highest-grossing_films") %>% 
-  html_table(fill = TRUE) %>% 
+highest <- read_html("https://en.wikipedia.org/wiki/List_of_highest-grossing_films") %>% 
+  html_table() %>% 
   `[[`(1)
 ```
-
 
 And now we see why R mystifies people. What does is that bit of nonsense at the end. It is really just an index shortcut. Once you know how to use it, it is great; however, it will make you shake your head if you see it in the wild without knowing about it first.
 
 This is where the benefit of <span class="pack">tidyverse</span> becomes clear. 
 
-
 ```{r, eval = FALSE}
-highest = read_html("https://en.wikipedia.org/wiki/List_of_highest-grossing_films") %>% 
-  html_table(fill = TRUE) %>%
+highest <- read_html("https://en.wikipedia.org/wiki/List_of_highest-grossing_films") %>% 
+  html_table() %>%
   magrittr::extract2(1)
 ```
 
-
 Or...
 
-
 ```{r, eval = FALSE}
-highest = read_html("https://en.wikipedia.org/wiki/List_of_highest-grossing_films") %>% 
-  html_table(fill = TRUE) %>%
+highest <- read_html("https://en.wikipedia.org/wiki/List_of_highest-grossing_films") %>% 
+  html_table() %>%
   purrr::pluck(1)
 ```
 
 Both functions are doing the same thing and with slightly different names, but it is crystal-clear what they are doing.
-
-Do be careful, though, because we can have some issues in function masking and <span class="func">pluck</span> from <span class="pack">purrr</span> does something very different than <span class="func">pluck</span> from <span class="pack">dplyr</span>.
-
 
 Someone try it and tell me what happens!
 
@@ -192,17 +181,16 @@ Let's check this wacky stuff out where we want all variables that start with "ag
 ```{r}
 library(lavaan)
 
-testData = HolzingerSwineford1939
+testData <- HolzingerSwineford1939
 
 names(testData)
 
-keepers = c(grep("^age", names(testData), value = TRUE), 
+keepers <- c(grep("^age", names(testData), value = TRUE), 
             paste("x", 1:9, sep = ""))
 
-testData = testData[, keepers]
+testData <- testData[, keepers]
 
 ```
-
 
 Not only do we have another regular expression, but we also have this paste line to create variable names. It seems like too much work to do something simple!
 
@@ -244,7 +232,6 @@ HolzingerSwineford1939 %>%
   select(id, starts_with("x"), everything()) %>% 
   head()
 ```
-
 
 ## Your Turn!
 
@@ -308,7 +295,6 @@ mtcars %>%
   summary()
 ```
 
-
 ## Your Turn
 
 For now, we are going to stick with that stataExample data. 
@@ -326,7 +312,7 @@ For now, we are going to stick with that stataExample data.
 If we want to do things in a tidy chunk, we need to use <span class="func">mutate</span>.
 
 ```{r}
-mtcars = mtcars %>% 
+mtcars <- mtcars %>% 
   mutate(roundedMPG = round(mpg))
 ```
 
@@ -357,8 +343,6 @@ recode(mtcars$vs, `0` = "v", `1` = "s")
 
 If we recall, we already saw a little bit of grouping and merging (if you don't, you might remember that mess with aggregate). Given that we already saw aggregate, we will just dive right into the tidyverse.
 
-## dplyr
-
 Grouping data and comparing various summary statistics by group is a common task. Sometimes it is just a means of exploration and sometimes it will actually answer the question. No matter the need, you will likely find it quite simple.
 
 ```{r}
@@ -369,12 +353,16 @@ mtcars %>%
             meanSD = sd(mpg))
 ```
 
-
 You can even summarize all of your variables in a handy way.
 
 ```{r}
 mtcars %>% 
-  summarize_all(funs(mean, sd), na.rm = TRUE)
+  summarize(across(everything(), list(mean = mean, sd = sd), na.rm = TRUE))
+```
+
+```{r}
+mtcars %>% 
+  summarize(across(where(is.numeric), list(mean = mean, sd = sd), na.rm = TRUE))
 ```
 
 Because we are dealing with the tidyverse, variable selection is included.
@@ -385,7 +373,6 @@ mtcars %>%
                    list(mean = mean, sd = sd), 
                    na.rm = TRUE))
 ```
-
 
 Combining group_by with summarize welcomes even more power to summarize data.
 
@@ -403,7 +390,7 @@ You are not limited to single <span class="func">group_by statements</span>!
 1.  Use the stataData again:
 
 ```{r, eval = FALSE}
-stataExample = haven::read_dta(file = "https://www3.nd.edu/~sberry5/data/stataExample.dta")
+stataExample <- haven::read_dta(file = "https://www3.nd.edu/~sberry5/data/stataExample.dta")
 ```
 
 2.  Check out the data names and find ones that might be suitable for grouping.
@@ -423,7 +410,7 @@ Data can take many different forms.
 We can have data that looks like this:
 
 ```{r, eval = FALSE}
-wideDat = data.frame(id = 1:3, 
+wideDat <- data.frame(id = 1:3, 
                      age = c(33, 35, 37), 
                      employeeType = c("full", "full", "part"))
 ```
@@ -432,12 +419,11 @@ wideDat = data.frame(id = 1:3,
 Or like this:
 
 ```{r, eval = FALSE}
-wideDat = data.frame(id = rep(1:3, times = 2), 
+wideDat <- data.frame(id = rep(1:3, times = 2), 
                      variable = rep(c("age", "employeeType"), each = 3), 
                      value = c(33, 35, 37, 
                                "full", "full", "part"))
 ```
-
 
 The first type, is what many will recongize as standard tabular data. Each row represents an observation, each column is a variable, and each "cell" holds one value.
 
@@ -505,12 +491,9 @@ starwarsLong <- starwars %>%
   select(name, height, mass) %>% 
   tidyr::pivot_longer(cols = height:mass, names_to = "variable")
 
-
-
 starwarsLong %>% 
   tidyr::pivot_wider(names_from = "variable", 
               values_from = "value")
-
 ```
 
 In addition to reshaping, <span class="pack">tidyr</span> has some handy functions for splitting (<span class="func">separate</span>) and pasting (<span class="func">unite</span>) columns.
@@ -526,18 +509,16 @@ Not only can we have multiple datasets open, but we can also merge those dataset
 The <span class="func"></span>merge function in base R, like everything else, can do us a great amount of good. 
 
 ```{r, eval = FALSE}
+board <- haven::read_sas()
 
-board = haven::read_sas()
+organization <- haven::read_sas()
 
-organization = haven::read_sas()
-
-mergedDat = merge(x = board, y = organization, by = "", 
+mergedDat <- merge(x = board, y = organization, by = "", 
       all.x = TRUE, all.y = FALSE)
 
 ```
 
 If there is anything good to be gotten from SQL, it is the notion of different joins and the handy language that it provides for specifying those joins. The merge function gives us no such explicit conventions (we would need to intuit or...read the documentation).
-
 
 ### Simulated Merryment
 
@@ -568,13 +549,13 @@ leftTest <- left_join(merge1, sasExample, by = "gvkey")
 If we want to join on multiple columns, we could provide a character vector:
 
 ```{r, eval = FALSE}
-leftTestMultiple = left_join(merge1, sasExample, by = c("gvkey", "coname"))
+leftTestMultiple <- left_join(merge1, sasExample, by = c("gvkey", "coname"))
 ```
 
 If our names don't match, we need to provide both:
 
 ```{r, eval = FALSE}
-leftTestEqual = left_join(merge1, sasExample, by = c("gvkey", 
+leftTestEqual <- left_join(merge1, sasExample, by = c("gvkey", 
                                                 "coname", 
                                                 "datadate" = "DATADATE1"))
 ```
@@ -584,36 +565,33 @@ How did this one work? Always check your data!
 ## Right
 
 ```{r, eval = FALSE}
-rightTest = right_join(merge1, sasExample, by = c("gvkey"))
+rightTest <- right_join(merge1, sasExample, by = c("gvkey"))
 ```
 
 ## Inner
 
 ```{r, eval = FALSE}
-innerTest = inner_join(merge1, sasExample, by = c("gvkey"))
+innerTest <- inner_join(merge1, sasExample, by = c("gvkey"))
 ```
-
 
 ## Semi
 
 ```{r, eval = FALSE}
-semiTest = semi_join(merge1, sasExample, by = c("gvkey"))
+semiTest <- semi_join(merge1, sasExample, by = c("gvkey"))
 ```
-
 
 ## Full
 
 ```{r, eval = FALSE}
-fullTest = full_join(merge1, sasExample, by = c("gvkey"))
+fullTest <- full_join(merge1, sasExample, by = c("gvkey"))
 ```
-
 
 ## Anti
 
-I didn't mention the anti join before! It does exactly what it sounds like -- it finds the things that don't match. A natural curiousity is the potential purpose for such a function. Can anyone think of anything?
+I didn't mention the anti join before! It does exactly what it sounds like -- it finds the things that don't match. A natural curiosity is the potential purpose for such a function. Can anyone think of anything?
 
 ```{r, eval = FALSE}
-antiTest = anti_join(merge1, sasExample, by = c("gvkey"))
+antiTest <- anti_join(merge1, sasExample, by = c("gvkey"))
 ```
 
 ## Your Turn!
@@ -621,14 +599,13 @@ antiTest = anti_join(merge1, sasExample, by = c("gvkey"))
 Let's look at these four files:
 
 ```{r, eval = FALSE}
-merge1 = "https://www3.nd.edu/~sberry5/data/merge1Company.dta"
+merge1 <- "https://www3.nd.edu/~sberry5/data/merge1Company.dta"
 
-merge2Hoberg = "https://www3.nd.edu/~sberry5/data/merge2Hoberg.txt"
+merge2Hoberg<- "https://www3.nd.edu/~sberry5/data/merge2Hoberg.txt"
 
-merge3McDonald = "https://www3.nd.edu/~sberry5/data/merge3McDonald.csv"
+merge3McDonald <- "https://www3.nd.edu/~sberry5/data/merge3McDonald.csv"
 
-sasExample = "https://www3.nd.edu/~sberry5/data/wciklink_gvkey.sas7bdat"
-
+sasExample <- "https://www3.nd.edu/~sberry5/data/wciklink_gvkey.sas7bdat"
 ```
 
 1.  Read those files in appropriately.
@@ -637,16 +614,12 @@ sasExample = "https://www3.nd.edu/~sberry5/data/wciklink_gvkey.sas7bdat"
 Chained merges look like this:
 
 ```{r, eval = FALSE}
-
 ## DO NOT RUN:
 
 left_join(data1, data2, by = "id") %>% 
   left_join(., data3, by = "id") %>% 
   left_join(., data4, by = "id")
-
 ```
-
-
 
 ## Binding
 
@@ -655,16 +628,14 @@ On more than just occasion, you will want to bring data together in a "stacked" 
 Imagine you have two data files that look exactly alike with regard to column names, but the values are different. This is when we could use a row bind:
 
 ```{r, eval = FALSE}
-data2003 = read.csv("https://www3.nd.edu/~sberry5/data/c2003_a.csv")
+data2003 <- fread("https://www3.nd.edu/~sberry5/data/c2003_a.csv")
 
-data2004 = read.csv("https://www3.nd.edu/~sberry5/data/c2004_a.csv")
+data2004 <- fread("https://www3.nd.edu/~sberry5/data/c2004_a.csv")
 
-# data2013 = read.csv("https://www3.nd.edu/~sberry5/data/")
-  
-complete = rbind(data2003, data2004)
+complete <- rbind(data2003, data2004)
 
+complete <- bind_rows(data2003, data2004)
 ```
-
 
 What if our rows were the same, but we wanted to add some columns? You said cbind, no doubt!
 
@@ -674,15 +645,9 @@ This is a point where we should revisit the term data wrangling. It makes sense 
 
 Therefore, we need to learn to accept a default frame of reference that allows us to break things down into smaller pieces. We are not bound to any monolith. 
 
-
-![](http://www.muralmosaic.com/Cochrane/grid.jpg)
-
-Keep this concept of *data collaging* in your mind.
-
-
 # R & SQL
 
-```{r}
+```{r, eval = FALSE}
 library(dplyr)
 library(DBI)
 library(dbplyr)
@@ -700,12 +665,44 @@ con <- DBI::dbConnect(odbc(),
 
 dbListFields(con, "wards")
 
-select_q <- dbSendQuery(con, "SELECT id, block FROM crimes")
+dbListFields(con, "crimes")
 
-res <- dbFetch(select_q)
+select_q <- dbSendQuery(conn = con, 
+                        statement = "SELECT ward, percentIncomeUnder25K FROM wards")
+
+select_res <- dbFetch(select_q)
 
 dbClearResult(select_q)
 
+# Rocking with over 2 million rows in crimes
+
+select_q <- dbSendQuery(conn = con, 
+                        statement = "SELECT id, ward, locationType, arrest FROM crimes WHERE arrest='TRUE' AND locationType='RESIDENCE'")
+
+select_res <- dbFetch(select_q)
+
+# Now we are down to under 45K!
+
+dbClearResult(select_q)
+
+longer_statement <- "
+SELECT locationType, COUNT(*) AS 'count'
+FROM crimes 
+GROUP BY locationType
+ORDER BY count DESC
+"
+
+my_query <- gsub("\\n|\\s+", " ", longer_statement)
+
+select_q <- dbSendQuery(conn = con, 
+                        statement = my_query)
+
+select_res <- dbFetch(select_q)
+```
+
+You can also just write dplyr code!
+
+```{r, eval = FALSE}
 table_1 <- tbl(con, 
                from = dbplyr::in_schema("dbo", "crimes"))
 

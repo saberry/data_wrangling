@@ -32,7 +32,7 @@ The more you interact with the code, the more you will understand how it works a
 
 ## Assessment
 
-At the end of every day, you will be given one data wrangling problem -- you will not need to provide any code for these assignments. Instead, your mission is to explain how you would solve the wrangling problem. Coding is very important and you will be doing plenty of it, but a big part of data wrangling is creating the mental map for what you are doing and how you are going to get there.
+Throughout the day, you will be given data wrangling problems -- some of these will require code and others will not. For those that don't require code, the goal is to provide the mental map for the step you need to take to get to an end state.
 
 Your job is to explain how to get from here:
 
@@ -47,17 +47,15 @@ Use these daily checks to start practicing how to build your data wrangling accu
 
 These daily checks are absolutely necessary and mandatory.
 
-While not, strictly speaking, an assessment, our last day together is going to be a hack-a-thon. You will get into groups of 3 people, choose one of three datasets, cobble it into some shape, and give a three minute presentation. 
+While not, strictly speaking, an assessment, our last day together is going to be a hack-a-thon. You will get into groups of 3 people, choose one of three datasets, cobble it into some shape, and give a five minute presentation. 
 
 ## Day 1
-
-- Importing data
 
 - Base R refresher
 
 - Basic data operations (selecting, filtering, grouping, joining)
 
-- Dates and times
+- Importing data
 
 - Apply family
 
@@ -71,9 +69,9 @@ While not, strictly speaking, an assessment, our last day together is going to b
 
 ## Day 3
 
-- Working with strings
-
 - Translating to data.table
+
+- Dates and times
 
 ## Day 4
 

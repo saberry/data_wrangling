@@ -11,6 +11,8 @@ knitr::opts_chunk$set(echo = TRUE)
 
 The most simple descriptor is that data.table extends base R's functionality and makes it faster. It also borrows from dplyr's notion of piping operations. A departure from typical base R is that data.table includes an extra position in the brackets.
 
+We've already seen fread, so let's continue to use it:
+
 ```{r}
 library(data.table)
 
@@ -21,6 +23,8 @@ str(nba_data)
 
 ## Selection
 
+Very similar to base R, but with a very convenient difference!
+
 ```{r}
 nba_data[, list(PTS, TEAM_ID, GAME_ID)]
 
@@ -29,6 +33,8 @@ nba_data[, list(PTS, pt_calc = PTS*1.5, TEAM_ID, GAME_ID)]
 
 ## Filtering
 
+Again, very base like.
+
 ```{r}
 nba_data[PTS > 10, ]
 
@@ -36,6 +42,8 @@ nba_data[PTS > 10]
 ```
 
 ## Grouping
+
+The group_by and summarize from dplyr can be handled with one line:
 
 ```{r}
 nba_data[, list(avg_pts = mean(PTS)), by = list(TEAM_ID, GAME_ID)]
@@ -194,3 +202,64 @@ microbenchmark(base_order(),
                dt_order())
 ```
 
+# Dates and Times
+
+Another glorious thing that will happen to you is working with dates -- they tend to be a pain.
+
+```{r}
+Sys.Date()
+
+format(Sys.Date(), "%m-%d-%Y")
+```
+
+And you get things like this:
+
+```{r}
+date1 <- "12012018"
+
+date2 <- "20180112"
+
+date3 <- "12-01-2018"
+
+date4 <- "12/01/2018"
+```
+
+If you had to merge data based upon these dates, you would be in trouble.
+
+You could, naturally, use some of the string cleaning stuff that we learned to tear them apart and then re-arrange them in a consistent manner.
+
+```{r}
+dateStrings <- strsplit(date3, split = "-")
+
+paste(dateStrings[[1]][3], 
+      dateStrings[[1]][2], dateStrings[[1]][1], 
+      sep = "-")
+```
+
+If we wanted to go down the path of that previous chunk, we would need to pass the whole thing into an lapply.
+
+Or...we can just do this:
+
+```{r}
+library(lubridate)
+
+mdy(date3)
+```
+
+There is some really great stuff in <span class="pack">lubridate</span>. For instance, if you need to get time intervals:
+
+```{r}
+exactAge <- function(birthday, 
+                     value = c("second", "minute", "hour", "day", 
+                               "week", "month", "year")) {
+  age = interval(ymd(birthday), ymd(Sys.Date()))  
+  
+  output <- time_length(age, value)
+  
+  return(output)
+}
+```
+
+Run that and give it your birthday in "YEAR-MO-DY" format. While it might be goofy at first glance, can we think of anything practical for it?
+
+There is a similar package, <span class="pack">hms</span>, for dealing with time.
