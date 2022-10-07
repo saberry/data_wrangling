@@ -241,6 +241,17 @@ orderedFacs <- ordered(facs,
 orderedFacs
 ```
 
+And logicals:
+
+```{r}
+logicalVector <- c(TRUE, FALSE, TRUE, FALSE, FALSE)
+
+sum(logicalVector)
+
+logicalVector[1] == 1
+```
+
+
 # Data Structures
 
 At our most basic, we have a vector. Think of it a just a basic list of numbers:
@@ -354,7 +365,26 @@ test_df[which(test_df$x > 3), ]
 test_df$max_val <- pmax(test_df$x, test_df$y)
 
 anyNA(test_df$x)
+
+is.na(test_df)
 ```
+
+There are also a huge number of ways to describe data:
+
+```{r}
+table(mtcars$cyl)
+
+prop.table(table(mtcars$cyl))
+
+prop.table(table(mtcars$cyl, mtcars$am))
+
+prop.table(table(mtcars$cyl, mtcars$am), margin = 1)
+
+prop.table(table(mtcars$cyl, mtcars$am), margin = 2)
+
+addmargins(table(mtcars$cyl, mtcars$am))
+```
+
 
 # Selecting 
 
