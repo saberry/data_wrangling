@@ -51,6 +51,8 @@ nba_data[, list(avg_pts = mean(PTS)), by = list(TEAM_ID, GAME_ID)]
 
 ## Special Symbols
 
+Now we get to the crazy! Powerful, but crazy.
+
 ```{r}
 nba_data[, .N]
 
@@ -95,6 +97,30 @@ top_pt_performance <-
     .SD[.N], 
     by = PLAYER_NAME
   ][PTS > 40]
+```
+
+## Reshaping
+
+The same functions from reshape2 -- melt and dcast -- are offered in data.table.
+
+Let's subset down to just players and teams:
+
+```{r}
+team_avg <- nba_data[, 
+                     list(sum_fg = sum(FGM), 
+                          sum_3pt = sum(FG3M)), 
+                     by = list(TEAM_ABBREVIATION, GAME_ID)
+][, 
+  list(mean_fg = mean(sum_fg), 
+       mean_3pt = mean(sum_3pt)), 
+  by = list(TEAM_ABBREVIATION)]
+```
+
+```{r}
+melted_avg <- melt.data.table(team_avg, 
+                              id.vars = "TEAM_ABBREVIATION", 
+                              variable.name = "stat", 
+                              value.name = "value")
 ```
 
 ## Merging
@@ -158,7 +184,7 @@ ggplot(all_players, aes(weight_pounds, PTS, color = player_game_number,
 
 1. You want to be one of the few people who can read and write the 3 major R dialects. 
 
-2. What are the goals. If you need something rapid, the tidyverse is great. However, it doesn't always play nicely in the broader ecosystem. The beauty of base R is that it doesn't really change, but it is slow. 
+2. What are the goals. If you need something rapid, the tidyverse is great. However, it doesn't always play nicely in the broader R ecosystem. The beauty of base R is that it doesn't really change, but it is slow. 
 
 3. Speed
 
@@ -201,6 +227,33 @@ microbenchmark(base_order(),
                dplyr_order(), 
                dt_order())
 ```
+
+This only becomes more pronounced as we get more complicated data. While base R can sometime be fast, it will fall apart when operations get bigger. Not only that, but data.table has the fastest joins of all:
+
+```{r}
+players_df <- as.data.frame(all_players)
+
+players_tibble <- as_tibble(all_players)
+
+base_merge <- function() {
+  merge(nba_df, players_df, 
+        by.x = "PLAYER_NAME", by.y = "full_name")
+}
+
+dplyr_merge <- function() {
+  left_join(nba_tibble, players_tibble, c("PLAYER_NAME" = "full_name"))
+}
+
+dt_merge <- function() {
+  all_players[nba_data, on = "full_name==PLAYER_NAME"]
+}
+
+microbenchmark(base_merge(), 
+               dplyr_merge(), 
+               dt_merge())
+```
+
+Again, we can see a clear advantage emerge!
 
 # Dates and Times
 

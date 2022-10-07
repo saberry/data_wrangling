@@ -419,15 +419,15 @@ wideDat <- data.frame(id = 1:3,
 Or like this:
 
 ```{r, eval = FALSE}
-wideDat <- data.frame(id = rep(1:3, times = 2), 
+longDat <- data.frame(id = rep(1:3, times = 2), 
                      variable = rep(c("age", "employeeType"), each = 3), 
                      value = c(33, 35, 37, 
                                "full", "full", "part"))
 ```
 
-The first type, is what many will recongize as standard tabular data. Each row represents an observation, each column is a variable, and each "cell" holds one value.
+The first type, is what many will recognize as standard tabular data. Each row represents an observation, each column is a variable, and each "cell" holds one value.
 
-The second type, long data, is what many will call key-value pairs. You will often see data like this in timeseries data.
+The second type, long data, is what many will call key-value pairs. You will often see data like this in time series data.
 
 You will encounter people who will swear that one way or the other is the ideal way to represent data -- we are going to opt for pragmatic as opposed to dogmatic. We can easily switch between these two types of data representations -- this is called reshaping.
 
