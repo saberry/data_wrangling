@@ -156,7 +156,7 @@ x %*% y
 %% is the modulus
 
 ```{r}
-10 %% 3
+10 %% 4
 ```
 
 ## |> 
@@ -194,6 +194,7 @@ If you want to install something from Github:
 
 ```{r, eval = FALSE}
 devtools::install_github("tidyverse/ggplot2")
+remotes::install_github("tidyverse/ggplot2")
 ```
 
 # Loading Packages
@@ -201,7 +202,7 @@ devtools::install_github("tidyverse/ggplot2")
 If you want to use a package, you load it into your local environment with:
 
 ```{r, eval = FALSE}
-library(dplyr)
+library(ggplot2)
 ```
 
 # Data Types
@@ -372,17 +373,21 @@ is.na(test_df)
 There are also a huge number of ways to describe data:
 
 ```{r}
-table(mtcars$cyl)
+data("msleep")
 
-prop.table(table(mtcars$cyl))
+msleep <- as.data.frame(msleep)
 
-prop.table(table(mtcars$cyl, mtcars$am))
+table(msleep$vore)
 
-prop.table(table(mtcars$cyl, mtcars$am), margin = 1)
+prop.table(table(msleep$vore))
 
-prop.table(table(mtcars$cyl, mtcars$am), margin = 2)
+prop.table(table(msleep$vore, msleep$conservation))
 
-addmargins(table(mtcars$cyl, mtcars$am))
+prop.table(table(msleep$vore, msleep$conservation), margin = 1)
+
+prop.table(table(msleep$vore, msleep$conservation), margin = 2)
+
+addmargins(table(msleep$vore, msleep$conservation))
 ```
 
 
@@ -393,23 +398,23 @@ addmargins(table(mtcars$cyl, mtcars$am))
 There are many ways to select variables with <span class="pack">base</span> R:
 
 ```{r, eval = FALSE}
-mtcars[, c(1:5, 7:8)]
+msleep[, c(1:5, 7:8)]
 
-keepers <- c("mpg", "cyl", "disp", "hp", "drat", "qsec", "vs")
+keepers <- c("name", "genus", "vore", "sleep_total", "sleep_rem")
 
-mtcars[, keepers]
+msleep[, keepers]
 
-mtcars[, c("mpg", grep("^c", names(mtcars), values = TRUE))]
+msleep[, c("name", grep("^sleep", names(msleep), values = TRUE))]
 ```
 
 You can also drop variables:
 
 ```{r}
-mtcars[, -c(1:2)]
+msleep[, -c(1:2)]
 
-dropVars <- c("vs", "drat")
+dropVars <- c("conservation", "vore")
 
-mtcars[, !(names(mtcars) %in% dropVars)]
+msleep[, !(names(msleep) %in% dropVars)]
 ```
 
 
@@ -434,7 +439,7 @@ One of the more frequent tasks is related to filtering/subsetting your data. You
 R gives us all the ability in the world to filter data.
 
 ```{r}
-summary(mtcars[mtcars$mpg < mean(mtcars$mpg), ])
+summary(msleep[msleep$sleep_total < mean(msleep$sleep_total), ])
 ```
 
 # New Variables and Recoding 
@@ -442,7 +447,7 @@ summary(mtcars[mtcars$mpg < mean(mtcars$mpg), ])
 Adding a new variable in <span class="pack">base</span> R is as easy as the following:
 
 ```{r}
-mtcars$roundedMPG = round(mtcars$mpg)
+msleep$roundedSleep <- round(msleep$sleep_total)
 ```
 
 You will need to recode variables at some point. Depending on the nature of the recode it can be easy (e.g., to reverse code a scale, you just subtract every value by max value + 1).
@@ -450,13 +455,13 @@ You will need to recode variables at some point. Depending on the nature of the 
 You will need to do some more elaborate stuff:
 
 ```{r, eval = FALSE}
-mtcars$mpgLoHi <- 0
+msleep$sleepLoHi <- 0
 
-mtcars$mpgLoHi[mtcars$mpg > median(mtcars$mpg)] <- 1
+msleep$sleepLoHi[msleep$sleep_total > median(msleep$sleep_total)] <- 1
 ```
 
 ```{r, eval = FALSE}
-mtcars$mpgLoHi <- ifelse(mtcars$mpg > median(mtcars$mpg), 1, 0)
+msleep$mpgLoHi <- ifelse(msleep$sleep_total > median(msleep$sleep_total), 1, 0)
 ```
 
 # The apply family
@@ -466,25 +471,25 @@ In addition to for loops, R has a whole set of functions for applying functions 
 We can use apply like this:
 
 ```{r}
-apply(X = cars, 
+apply(X = msleep[, c("sleep_total", "sleep_rem", "sleep_cycle")], 
       MARGIN = 1, 
-      FUN = mean)
+      FUN = function(x) mean(x, na.rm = TRUE))
 ```
 
 What we just did was to apply the mean function over the rows (MARGIN = 1) of the cars data frame. We could even assign that to our data:
 
 ```{r}
-cars$row_means <- apply(X = cars, 
+msleep$sleepMeans <- apply(X = msleep[, c("sleep_total", "sleep_rem", "sleep_cycle")], 
       MARGIN = 1, 
-      FUN = mean)
+      FUN = function(x) mean(x, na.rm = TRUE))
 ```
 
 If `MARGIN = 1` works over the rows, what would be the alternative:
 
 ```{r}
-apply(X = cars, 
+apply(X = msleep[, c("sleep_total", "sleep_rem", "sleep_cycle")], 
       MARGIN = 2, 
-      FUN = mean)
+      FUN = function(x) mean(x, na.rm = TRUE))
 ```
 
 Whenever you need to apply a function over the rows or columns of a data frame, apply has you covered.
@@ -504,14 +509,14 @@ data.frame(lapply_result)
 Perhaps the most interesting thing that lapply can do is to work over a data frame, since a data frame is nothing more than a fancy list.
 
 ```{r}
-str(mtcars)
+str(msleep)
 
-factor_vars <- c("cyl", "vs", "am", "gear")
+factor_vars <- c("genus", "vore", "order", "conservation")
 
-mtcars[, factor_vars] <- lapply(factor_vars, 
-                                function(x) as.factor(mtcars[, x]))
+msleep[, factor_vars] <- lapply(factor_vars, 
+                                function(x) as.factor(msleep[, x]))
 
-str(mtcars)
+str(msleep)
 ```
 
 Finally, we come to mapply: multiple apply. The goal of mapply is to apply several different vectors over a function:
@@ -613,16 +618,17 @@ In the end, that particular function is a long way around doing an aggregate/gro
 
 Before moving on from this class, the concept of iteration needs to be crystal clear and we have just seen several versions of it. 
 
-Let's imagine that we have a set of variables; we can just use the variables from mtcars. 
+Let's imagine that we have a set of variables; we can just use the variables from msleep 
 
 For this instance let's say that we want to try every variable in that data as an individual predictor; please note, though, that this is something that you would **never** do in practice. There are better methods for handling this procedure. 
 
 Let's see how we would structure this in a for loop:
 
 ```{r}
-predictor_vars <- colnames(mtcars)
+predictor_vars <- msleep[, sapply(colnames(msleep), function(x) is.numeric(msleep[, x]))] |>
+  colnames()
 
-predictor_vars <- predictor_vars[-which(predictor_vars == "mpg")] 
+predictor_vars <- predictor_vars[-which(predictor_vars == "brainwt")] 
 
 predictor_count <- length(predictor_vars)
 
@@ -633,9 +639,9 @@ results_df <- data.frame(predictor = character(predictor_count),
 for(i in 1:predictor_count) {
   predictor <- predictor_vars[i]
   
-  model_formula <- as.formula(paste0("mpg ~ ", predictor))
+  model_formula <- as.formula(paste0("brainwt ~ ", predictor))
   
-  regression_model <- lm(model_formula, data = mtcars)
+  regression_model <- lm(model_formula, data = msleep)
   
   model_result <- data.frame(predictor = predictor, 
                              coefficient = regression_model$coefficients[predictor], 
@@ -649,15 +655,14 @@ for(i in 1:predictor_count) {
 results_df
 ```
 
-
 We can do the exact same thing with an lapply:
 
 ```{r}
 model_results <- lapply(predictor_vars, function(predictor) {
   
-  model_formula <- as.formula(paste0("mpg ~ ", predictor))
+  model_formula <- as.formula(paste0("brainwt ~ ", predictor))
   
-  regression_model <- lm(model_formula, data = mtcars)
+  regression_model <- lm(model_formula, data = msleep)
   
   model_summary <- summary(regression_model)
   
@@ -676,9 +681,9 @@ Or with map_df:
 
 ```{r}
 model_results <- purrr::map_df(.x = predictor_vars, ~{
-  model_formula <- as.formula(paste0("mpg ~ ", .x))
+  model_formula <- as.formula(paste0("brainwt ~ ", .x))
   
-  regression_model <- lm(model_formula, data = mtcars)
+  regression_model <- lm(model_formula, data = msleep)
   
   model_summary <- summary(regression_model)
   
