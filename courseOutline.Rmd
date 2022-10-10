@@ -1,7 +1,7 @@
 ---
 title: | 
   | Data Wrangling With R & Databases
-  | ITAO 70810
+  | MSBR 70810
   | Course Overview
   
 author: |
@@ -43,11 +43,11 @@ To here:
 
 ![](http://i.pinimg.com/736x/a8/56/17/a85617ee1a02495037456d753f15b80f--most-beautiful-puzzles.jpg)
 
-Use these daily checks to start practicing how to build your data wrangling accumen.
+Use these daily checks to start practicing how to build your data wrangling acumen.
 
 These daily checks are absolutely necessary and mandatory.
 
-While not, strictly speaking, an assessment, our last day together is going to be a hack-a-thon. You will get into groups of 3 people, choose one of three datasets, cobble it into some shape, and give a five minute presentation. 
+While not, strictly speaking, an assessment, our last day together is going to be a hack-a-thon. You will get into groups of no more than 3 people, choose a data base from those accessed in class, cobble it into some shape, and give a five minute presentation. 
 
 ## Day 1
 
