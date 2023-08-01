@@ -1,0 +1,182 @@
+---
+title: "Connecting R and SQL"
+format: html
+---
+
+Everything has a purpose. Mosquitoes, a scourge for humans, are an important food source for dragonflies. Shoelaces don't work as well without the humble aglet. There are even different types of hammers made specifically for different jobs. 
+
+If everything has a purpose, we should think about the tools we use as purpose-built tools and the situations where they excel (even Excel has a place in the world). R is great for data wrangling, stats, and visualizations; however, you would never store data in R. SQL is great at storing and manipulating data, but isn't great for anything beyond simple summary statistics. If these two tools do their own jobs well, why can't we use them together?  
+
+::: {.callout-note}
+You can do lots of stats in SQL, but why? 
+
+```{sql}
+#| eval: false
+select x, avg(x) over () as x_bar,
+       y, avg(y) over () as y_bar
+from my_df;
+
+select sum((x - x_bar) * (y - y_bar)) / sum((x - x_bar) * (x - x_bar)) as slope
+from (
+    select x, avg(x) over () as x_bar,
+           y, avg(y) over () as y_bar
+    from my_df) s;
+
+select slope, 
+       y_bar_max - x_bar_max * slope as intercept 
+from (
+    select sum((x - x_bar) * (y - y_bar)) / sum((x - x_bar) * (x - x_bar)) as slope,
+           max(x_bar) as x_bar_max,
+           max(y_bar) as y_bar_max    
+    from (
+        select x, avg(x) over () as x_bar,
+               y, avg(y) over () as y_bar
+        from my_df) s;
+)
+```
+
+I think I'd rather stick with `lm`:
+
+```{r}
+#| eval: false
+lm(y~x, data = my_df)
+```
+:::
+
+Before we can get started with R and SQL, we need to make sure that we have the necessary drivers.
+
+## Mac
+
+For Mac users, you are going to start by install Homebrew. 
+
+Open up your command line, copy, paste, and run the following:
+
+```{bash}
+#| eval: false
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+```
+
+You can expect it to take some time. Pay attention, though, because it might prompt you with No/Yes questions. After some time, it should be install and be ready.
+
+After you have Homebrew installed, you can install the unixODBC drivers:
+
+```{bash}
+#| eval: false
+brew install unixodbc
+```
+
+And finally install a MySQL driver:
+
+```{bash}
+#| eval: false
+brew tap microsoft/mssql-release https://github.com/Microsoft/homebrew-mssql-release
+brew update
+brew install msodbcsql17 mssql-tools
+```
+
+## Windows
+
+If you are using a Windows machine, things should be pretty easy. 
+
+## R
+
+Once you OS-specific work is done, you can install the `odbc` package for R:
+
+```{r}
+#| eval: false
+install.packages("odbc")
+```
+
+You could use this package by itself and all would be okay. It does, however, require a bit of work to get going. The `DBI` package solves this by providing a nice wrapper around `odbc`, just to make life a bit easier:
+
+```{r}
+#| eval: false
+install.packages("DBI")
+```
+
+```{r}
+#| eval: false
+library(dplyr)
+library(DBI)
+library(dbplyr)
+library(odbc)
+
+odbcListDrivers()
+
+con <- DBI::dbConnect(odbc(),
+                      Driver = "ODBC Driver 17 for SQL Server",
+                      Server = "mcobsql.business.nd.edu",
+                      UID = "MSBAstudent",
+                      PWD = "SQL%database!Mendoza",
+                      Port = 3306, 
+                      Database = "ChicagoCrime")
+
+dbListFields(con, "wards")
+
+dbListFields(con, "crimes")
+
+select_q <- dbSendQuery(conn = con, 
+                        statement = "SELECT ward, percentIncomeUnder25K FROM wards")
+
+select_res <- dbFetch(select_q)
+
+dbClearResult(select_q)
+
+# Rocking with over 2 million rows in crimes
+
+select_q <- dbSendQuery(conn = con, 
+                        statement = "SELECT id, ward, locationType, arrest FROM crimes WHERE arrest='TRUE' AND locationType='RESIDENCE'")
+
+select_res <- dbFetch(select_q)
+
+# Now we are down to under 45K!
+
+dbClearResult(select_q)
+
+longer_statement <- "
+SELECT locationType, COUNT(*) AS 'count'
+FROM crimes 
+GROUP BY locationType
+ORDER BY count DESC
+"
+
+my_query <- gsub("\\n|\\s+", " ", longer_statement)
+
+select_q <- dbSendQuery(conn = con, 
+                        statement = my_query)
+
+select_res <- dbFetch(select_q)
+```
+
+You can also just write dplyr code with dbplyr!
+
+```{r}
+#| eval: false
+install.packages("dbplyr")
+```
+
+
+```{r}
+#| eval: false
+table_1 <- tbl(con, 
+               from = dbplyr::in_schema("dbo", "crimes"))
+
+sub_table <- table_1 %>% 
+  dplyr::select(id:longitude)
+
+show_query(sub_table)
+
+sub_df <- sub_table %>% collect()
+
+DBI::dbDisconnect(con)
+```
+
+## DuckDB
+
+Subject to the whims of developers, some technologies get popular, while others don't. Over the last year or so, DuckDB has found great popularity within the analytics world. It has support for just about every language that is used within the space and makes life much easier than your typical Microsoft products.
+
+```{r}
+#| eval: false
+install.packages("duckdb")
+```
+
