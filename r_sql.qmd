@@ -175,8 +175,27 @@ DBI::dbDisconnect(con)
 
 Subject to the whims of developers, some technologies get popular, while others don't. Over the last year or so, DuckDB has found great popularity within the analytics world. It has support for just about every language that is used within the space and makes life much easier than your typical Microsoft products.
 
+While it will absolutely act like any other database, think of DuckDB as a place where you can link R (or any language, for that matter) with any type of large file that can live on your machine, but isn't necessarily something you want to bring into memory. It will do everything that dplyr, data.table, polars, pandas, dask, and SQL can do, but in a fast and easy to deploy manner.
+
 ```{r}
 #| eval: false
 install.packages("duckdb")
+```
+
+You can use it with it's own functions or integrate DuckDB into the dbplyr flow:
+
+```{r}
+#| eval: false
+library(duckdb)
+```
+
+```{r}
+#| eval: false
+con <- dbConnect(duckdb::duckdb())
+
+tbl(con, "test.csv") |>
+  group_by() |>
+  summarise(across(vars, .fns = mean)) |>
+  collect()
 ```
 
