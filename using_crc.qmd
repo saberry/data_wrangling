@@ -1,0 +1,99 @@
+---
+title: "Using The CRC"
+format: html
+---
+
+## Logging In
+
+## Installing Packages
+
+You already know how to install packages and it isn't much harder than that, but there are a few things that need to be done before. 
+
+You'll need to make a directory to dump your R packages into. You can do it pretty easily by copying the following right into your CRC terminal:
+
+```{bash}
+#| eval: false
+mkdir ~/myRlibs
+```
+
+To make life easier once we get into R, we also need to create an `Renviron` profile.
+
+We will start by opening up a text editor. Just to keep things easy, we can use nano:
+
+```{bash}
+#| eval: false
+nano
+```
+
+Within nano, type the following:
+
+```{bash}
+#| eval: false
+R_LIBS=~/myRLibs
+```
+
+Next, you can press Ctrl + O to name and save your file. 
+
+Once your file is saved, you can hit Ctrl + X to escape from Nano.
+
+Finally, use head to see what is in the file:
+
+```{bash}
+#| eval: false
+head .Renviron
+```
+
+::: {.callout-note}
+Terminal-based text editors scare people. Nano is probably the easiest, since you start in `insert` mode. VIM, however, is probably the most famous of them all; it is likely the most powerful text editor in existence. In VIM, you need to enter into the command mode with escape. From there, you can go into `INSERT` mode with I. Once you write some stuff, you need to go back to the command prompt. From there, you can :q, :wq, or :q -- all variants of quitting and writing.
+:::
+
+Now that we have a place to dump packages, we can get R going.
+
+```{bash}
+#| eval: false
+module load R
+```
+
+Now that R is loaded, you can just type R in the terminal and you will be greeted with R!
+
+```{bash}
+#| eval: false
+R
+```
+
+And to something a bit more familiar:
+
+```{r}
+#| eval: false
+install.packages('dplyr', lib='~/myRLibs', repos = 'https://cloud.r-project.org')
+```
+
+You will probably find errors popping up when you are installing packages, coupled with the lack of a friendly IDE. Just keep in mind that you might have to read the error messages and install those packages that it is telling you caused a problem. 
+
+## Submitting Jobs
+
+To submit jobs, you'll need an R script and a bash script. 
+
+It will contain the following information:
+
+```{bash}
+#| eval: false
+#!/bin/bash 
+#$ -M netid@nd.edu   # Email address for job notification
+#$ -m abe             # Send mail when job begins, ends and aborts
+
+module load R
+R CMD BATCH  your_input_R_file.r  your_output_R_file.out
+```
+
+You can make it anywhere you want, but using nano is helpful here. It will have a .script extension. 
+
+Once you have that saved, you just need to submit the job:
+
+```{bash}
+#| eval: false
+qsub my_r_job.script
+```
+
+Since we put an `abe` tag in our batch script, we will get an email when our job starts and ends (or has an error).
+
