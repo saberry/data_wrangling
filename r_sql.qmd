@@ -1,6 +1,11 @@
 ---
 title: "Connecting R and SQL"
-format: html
+format:
+  html:
+    toc: true
+    toc-location: left
+    theme: vapor
+    self-contained: true
 ---
 
 Everything has a purpose. Mosquitoes, a scourge for humans, are an important food source for dragonflies. Shoelaces don't work as well without the humble aglet. There are even different types of hammers made specifically for different jobs. 

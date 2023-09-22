@@ -1,6 +1,11 @@
 ---
 title: "Using The CRC"
-format: html
+format:
+  html:
+    toc: true
+    toc-location: left
+    theme: vapor
+    self-contained: true
 ---
 
 ## Logging In
