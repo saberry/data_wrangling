@@ -1,0 +1,10 @@
+---
+title: "Getting Going With GitHub"
+format:
+  html:
+    toc: true
+    toc-location: left
+    theme: vapor
+    self-contained: true
+---
+

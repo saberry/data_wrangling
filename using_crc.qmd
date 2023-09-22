@@ -1,5 +1,5 @@
 ---
-title: "Using The CRC"
+title: "Parallelization and The CRC"
 format:
   html:
     toc: true
@@ -7,6 +7,95 @@ format:
     theme: vapor
     self-contained: true
 ---
+
+## Making The Most of Your Machine
+
+Your computer does not just have one core doing all the work, but has 8, 12, or maybe even 16. When you are using your computer for various tasks, it is balancing that load across the cores. If we have a compute intensive task, though, we can split that job up across the cores to speed up the job. 
+
+Want to know how many cores your machine has available?
+
+```{r}
+parallel::detectCores()
+```
+
+Now you know how much use you can get out of your machine. 
+
+### Using furrr and future
+
+```{r}
+plan(multisession, workers = parallel::detectCores() - 1)
+
+dollar_breaks <- future_map_dfr(1:10000, ~{
+  
+  day <- 0
+  brokedown <- 0
+  total_breakdown <- 0
+  counter <- 0
+  dollars_made <- 0
+  
+  for(i in 1:365) {
+    brokedown <- brokedown - 1
+    
+    if(rbinom(1, 1, .1) == 1 & brokedown <= 0) { # Break downs happen 10%
+      # brokedown <- sample(1:3, 1, prob = c(.1, .8, .1)) # Usually for 2 days
+      brokedown <- rpois(1, 2)
+      total_breakdown <- total_breakdown + brokedown
+    }
+    
+    if(brokedown < 1) {
+      dollar_sample <- rnorm(1, 180, 25)
+      dollars_made <- dollars_made + dollar_sample
+    }  
+    day <- day + 1
+  }
+  
+  data.frame(dollars = dollars_made, 
+             days = total_breakdown, 
+             run = .x)
+}, .options = furrr_options(seed = TRUE))
+```
+
+### Using foreach
+
+```{r}
+cl <- makeCluster(parallel::detectCores() - 1)
+
+registerDoParallel(cl)
+
+t1 <- proc.time()
+dollar_breaks <- foreach(i = 1:10000, .combine = "rbind") %dopar% {
+  day <- 0
+  brokedown <- 0
+  total_breakdown <- 0
+  counter <- 0
+  dollars_made <- 0
+  
+  for(i in 1:365) {
+    brokedown <- brokedown - 1
+    
+    if(rbinom(1, 1, .1) == 1) { # Break downs happen 10%
+      # brokedown <- sample(1:3, 1, prob = c(.1, .8, .1)) # Usually for 2 days
+      brokedown <- rpois(1, 2)
+      total_breakdown <- total_breakdown + brokedown
+    }
+    
+    if(brokedown < 1) {
+      dollar_sample <- rnorm(1, 180, 25)
+      dollars_made <- dollars_made + dollar_sample
+    }  
+    day <- day + 1
+  }
+  
+  data.frame(dollars = dollars_made, 
+             days = total_breakdown, 
+             run = i)
+}
+proc.time() - t1
+
+stopCluster(cl)
+```
+
+This is great when you've got something that will fit nicely on your own machine, but you just want to experience a little more speed!
 
 ## Logging In
 
