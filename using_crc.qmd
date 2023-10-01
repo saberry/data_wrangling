@@ -22,7 +22,12 @@ Now you know how much use you can get out of your machine.
 
 ### Using furrr and future
 
+The base R package `parallel` is great, but requires a little bit of work to get going -- you've got to create clusters, register packages and objects, and then have a pretty solid understanding of the various apply-family functions (which you should really learn anyway). 
+
 ```{r}
+library(furrr)
+library(future)
+
 plan(multisession, workers = parallel::detectCores() - 1)
 
 dollar_breaks <- future_map_dfr(1:10000, ~{
@@ -53,16 +58,21 @@ dollar_breaks <- future_map_dfr(1:10000, ~{
              days = total_breakdown, 
              run = .x)
 }, .options = furrr_options(seed = TRUE))
+
+plan(sequential)
 ```
 
 ### Using foreach
 
+If you don't want to learn how to use R to its potential (definitely a mistake) and stick with for loops, then you can use the `foreach` package to parallelize your for loops.
+
 ```{r}
+library(foreach)
+
 cl <- makeCluster(parallel::detectCores() - 1)
 
 registerDoParallel(cl)
 
-t1 <- proc.time()
 dollar_breaks <- foreach(i = 1:10000, .combine = "rbind") %dopar% {
   day <- 0
   brokedown <- 0
@@ -90,7 +100,6 @@ dollar_breaks <- foreach(i = 1:10000, .combine = "rbind") %dopar% {
              days = total_breakdown, 
              run = i)
 }
-proc.time() - t1
 
 stopCluster(cl)
 ```
