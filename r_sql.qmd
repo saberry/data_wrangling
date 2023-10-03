@@ -120,8 +120,10 @@ dbListFields(con, "wards")
 
 dbListFields(con, "crimes")
 
-select_q <- dbSendQuery(conn = con, 
-                        statement = "SELECT ward, percentIncomeUnder25K FROM wards")
+select_q <- dbSendQuery(
+  conn = con, 
+  statement = "SELECT ward, percentIncomeUnder25K FROM wards"
+)
 
 select_res <- dbFetch(select_q)
 
@@ -129,8 +131,11 @@ dbClearResult(select_q)
 
 # Rocking with over 2 million rows in crimes
 
-select_q <- dbSendQuery(conn = con, 
-                        statement = "SELECT id, ward, locationType, arrest FROM crimes WHERE arrest='TRUE' AND locationType='RESIDENCE'")
+select_q <- dbSendQuery(
+  conn = con, 
+  statement = "SELECT id, ward, locationType, arrest 
+  FROM crimes WHERE arrest='TRUE' AND locationType='RESIDENCE'"
+)
 
 select_res <- dbFetch(select_q)
 
@@ -151,6 +156,8 @@ select_q <- dbSendQuery(conn = con,
                         statement = my_query)
 
 select_res <- dbFetch(select_q)
+
+dbClearResult(select_q)
 ```
 
 You can also just write dplyr code with dbplyr!
@@ -192,15 +199,17 @@ You can use it with it's own functions or integrate DuckDB into the dbplyr flow:
 ```{r}
 #| eval: false
 library(duckdb)
+library(dbplyr)
 ```
 
 ```{r}
 #| eval: false
 con <- dbConnect(duckdb::duckdb())
 
-tbl(con, "test.csv") |>
-  group_by() |>
-  summarise(across(vars, .fns = mean)) |>
+tbl(con, 
+    "~/data_wrangling_class/data/Rail_Equipment_Accident_Incident_Data.csv") |>
+  group_by(`Accident Type`) |>
+  summarise(mean_killed = mean(`Total Persons Killed`)) |>
   collect()
 ```
 

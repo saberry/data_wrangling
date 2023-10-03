@@ -168,7 +168,9 @@ And to something a bit more familiar:
 
 ```{r}
 #| eval: false
-install.packages('dplyr', lib='~/myRLibs', repos = 'https://cloud.r-project.org')
+install.packages('dplyr', 
+                 lib = '~/myRLibs', 
+                 repos = 'https://cloud.r-project.org')
 ```
 
 You will probably find errors popping up when you are installing packages, coupled with the lack of a friendly IDE. Just keep in mind that you might have to read the error messages and install those packages that it is telling you caused a problem. 
