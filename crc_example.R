@@ -3,7 +3,7 @@ library(foreach)
 library(parallel)
 library(stringr)
 
-rail <- read.csv("Rail_Equipment_Accident_Incident_Data.csv")
+rail <- read.csv("/afs/crc.nd.edu/user/s/sberry5/wrangling_test/Rail_Equipment_Accident_Incident_Data.csv")
 
 # for(i in colnames(rail)) {
 #   
@@ -32,4 +32,4 @@ parallel::stopCluster(cluster)
 
 registerDoSEQ()
 
-save(output, file = "output.RData")
+save(output, file = "/afs/crc.nd.edu/user/s/sberry5/wrangling_test/output.RData")
