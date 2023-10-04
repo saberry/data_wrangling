@@ -197,7 +197,7 @@ Once you have that saved, you just need to submit the job:
 
 ```{bash}
 #| eval: false
-qsub my_r_job.script
+qsub my_r_job.sh
 ```
 
 Since we put an `abe` tag in our batch script, we will get an email when our job starts and ends (or has an error).
