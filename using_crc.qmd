@@ -25,39 +25,45 @@ Now you know how much use you can get out of your machine.
 The base R package `parallel` is great, but requires a little bit of work to get going -- you've got to create clusters, register packages and objects, and then have a pretty solid understanding of the various apply-family functions (which you should really learn anyway). 
 
 ```{r}
+rail <- read.csv("~/data_wrangling_class/data/Rail_Equipment_Accident_Incident_Data.csv")
+
+rail$casualty <- rail$Total.Persons.Injured + rail$Total.Persons.Killed
+
+simple_model <- lm(casualty ~ Temperature + Loaded.Freight.Cars + Minutes.Conductors.On.Duty, 
+                   data = rail)
+
+model_summary <- summary(simple_model)
+
+t_result <- data.frame(t(model_summary$coefficients[, 't value']))
+```
+
+Now let's see how we can bootstrap in parallel.
+
+```{r}
 library(furrr)
 library(future)
 
 plan(multisession, workers = parallel::detectCores() - 1)
 
-dollar_breaks <- future_map_dfr(1:10000, ~{
+bootstraps <- 100
+
+output <- future_map_dfr(1:bootstraps, ~{
   
-  day <- 0
-  brokedown <- 0
-  total_breakdown <- 0
-  counter <- 0
-  dollars_made <- 0
+  sample_rows <- sample(x = 1:nrow(rail), 
+                        size = 10000, 
+                        replace = TRUE)
   
-  for(i in 1:365) {
-    brokedown <- brokedown - 1
-    
-    if(rbinom(1, 1, .1) == 1 & brokedown <= 0) { # Break downs happen 10%
-      # brokedown <- sample(1:3, 1, prob = c(.1, .8, .1)) # Usually for 2 days
-      brokedown <- rpois(1, 2)
-      total_breakdown <- total_breakdown + brokedown
-    }
-    
-    if(brokedown < 1) {
-      dollar_sample <- rnorm(1, 180, 25)
-      dollars_made <- dollars_made + dollar_sample
-    }  
-    day <- day + 1
-  }
+  sample_data <- rail[sample_rows, ]
   
-  data.frame(dollars = dollars_made, 
-             days = total_breakdown, 
-             run = .x)
-}, .options = furrr_options(seed = TRUE))
+  simple_model <- lm(casualty ~ Temperature + Loaded.Freight.Cars + Minutes.Conductors.On.Duty, 
+                     data = sample_data)
+  
+  model_summary <- summary(simple_model)
+  
+  t_result <- data.frame(t(model_summary$coefficients[, 't value']))
+  
+  t_result
+})
 
 plan(sequential)
 ```
@@ -68,37 +74,28 @@ If you don't want to learn how to use R to its potential (definitely a mistake) 
 
 ```{r}
 library(foreach)
+library(doParallel)
 
 cl <- makeCluster(parallel::detectCores() - 1)
 
 registerDoParallel(cl)
 
-dollar_breaks <- foreach(i = 1:10000, .combine = "rbind") %dopar% {
-  day <- 0
-  brokedown <- 0
-  total_breakdown <- 0
-  counter <- 0
-  dollars_made <- 0
+foreach_bootstrap <- foreach(i = 1:bootstraps, .combine = "rbind") %dopar% {
   
-  for(i in 1:365) {
-    brokedown <- brokedown - 1
-    
-    if(rbinom(1, 1, .1) == 1) { # Break downs happen 10%
-      # brokedown <- sample(1:3, 1, prob = c(.1, .8, .1)) # Usually for 2 days
-      brokedown <- rpois(1, 2)
-      total_breakdown <- total_breakdown + brokedown
-    }
-    
-    if(brokedown < 1) {
-      dollar_sample <- rnorm(1, 180, 25)
-      dollars_made <- dollars_made + dollar_sample
-    }  
-    day <- day + 1
-  }
+  sample_rows <- sample(x = 1:nrow(rail), 
+                        size = 10000, 
+                        replace = TRUE)
   
-  data.frame(dollars = dollars_made, 
-             days = total_breakdown, 
-             run = i)
+  sample_data <- rail[sample_rows, ]
+  
+  simple_model <- lm(casualty ~ Temperature + Loaded.Freight.Cars + Minutes.Conductors.On.Duty, 
+                     data = sample_data)
+  
+  model_summary <- summary(simple_model)
+  
+  t_result <- data.frame(t(model_summary$coefficients[, 't value']))
+  
+  t_result
 }
 
 stopCluster(cl)
