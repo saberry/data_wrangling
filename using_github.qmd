@@ -62,7 +62,7 @@ You'll also need to pass along your unique GitHub key.
 
 6. If you are using a Mac, you will need to add this to your Keychain Access
 
-  -   https://gist.github.com/jonjack/bf295d4170edeb00e96fb158f9b1ba3c
+  -   https://medium.com/codex/git-credentials-on-macos-caching-updating-and-deleting-your-git-credentials-8d22b6126533
   
   -   Windows is pretty easy
   
