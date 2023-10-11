@@ -34,7 +34,21 @@ Likely the easiest step -- just go <a href="https://github.com/">here</a> and si
 
 After you have Git installed and a Github account, you will need to link them together on your machine.
 
-If you are on a Mac, open your terminal. If you are on Windows, open Git Bash (or the command prompt if you are having trouble finding the Bash terminal). Remember that you can use the terminal that comes packaged in RStudio, but any terminal will do.
+## Mac
+
+The easiest way to do this on a Mac is to install the gh set of binaries and use them to authenticate.  You can do so using the following steps:
+```
+# Install gh
+brew install gh
+
+# use gh to authenticate
+gh auth login
+
+# Authenitcate to github.com, specifying HTTPS, authenticating git, and Login with Browser option
+```
+
+## Windows
+If you are on Windows, open Git Bash (or the command prompt if you are having trouble finding the Bash terminal). Remember that you can use the terminal that comes packaged in RStudio, but any terminal will do.
 
 Once you have your terminal open, type the following:
 
@@ -60,13 +74,7 @@ You'll also need to pass along your unique GitHub key.
 
 5. Generate a new token
 
-6. If you are using a Mac, you will need to add this to your Keychain Access
-
-  -   https://medium.com/codex/git-credentials-on-macos-caching-updating-and-deleting-your-git-credentials-8d22b6126533
-  
-  -   Windows is pretty easy
-  
-7. Whenever you are prompted for a password, enter your PAT, not your actual password.
+6. Whenever you are prompted for a password, enter your PAT, not your actual password.
 
 # Create Repo
 
