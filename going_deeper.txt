@@ -1,0 +1,10 @@
+# If you're interested in going deeper and better understanding
+# the UNIX shell/command line.  Here's one of the best places to start:
+
+1.  https://github.com/swcarpentry/shell-noviceLinks to an external site.
+2.  And the website: https://swcarpentry.github.io/shell-novice/Links to an external site. 
+3.  Make sure you read the instructor notesLinks to an external site..
+4.  The vim editor: https://www.linuxfoundation.org/blog/blog/classic-sysadmin-vim-101-a-beginners-guide-to-vim
+
+# The best possible thing you can do to get comfortable is to practice, practice, practice,
+# so that these tools simply become muscle memory.  Like typing.
