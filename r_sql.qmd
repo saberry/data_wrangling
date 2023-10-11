@@ -101,13 +101,16 @@ install.packages("DBI")
 
 ```{r}
 #| eval: false
+rm(list = ls())
 library(dplyr)
 library(DBI)
 library(dbplyr)
 library(odbc)
+library(tidyverse)
 
 odbcListDrivers()
 
+# Establish a connection to the DB
 con <- DBI::dbConnect(odbc(),
                       Driver = "ODBC Driver 17 for SQL Server",
                       Server = "mcobsql.business.nd.edu",
@@ -120,6 +123,7 @@ dbListFields(con, "wards")
 
 dbListFields(con, "crimes")
 
+# Build the query
 select_q <- dbSendQuery(
   conn = con, 
   statement = "SELECT ward, percentIncomeUnder25K FROM wards"
@@ -133,13 +137,30 @@ dbClearResult(select_q)
 
 select_q <- dbSendQuery(
   conn = con, 
+  statement = "SELECT COUNT(*) FROM crimes"
+)
+select_res <- dbFetch(select_q)
+dbClearResult(select_q)
+
+select_q <- dbSendQuery(
+  conn = con, 
+  statement = "SELECT * FROM crimes"
+)
+
+select_res <- dbFetch(select_q)
+
+dbClearResult(select_q)
+
+select_q <- dbSendQuery(
+  conn = con, 
   statement = "SELECT id, ward, locationType, arrest 
   FROM crimes WHERE arrest='TRUE' AND locationType='RESIDENCE'"
 )
 
 select_res <- dbFetch(select_q)
-
-# Now we are down to under 45K!
+#select_res %>% ggplot() +
+  #geom_bar(aes(x=ward))
+# Now we are down to 45K!
 
 dbClearResult(select_q)
 
@@ -183,6 +204,63 @@ sub_df <- sub_table %>% collect()
 DBI::dbDisconnect(con)
 ```
 
+
+Let's return to our old friend, AdventureWorks.  We'll begin by simply pulling sales
+order headers from 2012 with the query:
+
+ SELECT SalesOrderID, OrderDate, CustomerID, TotalDue
+ FROM Sales.SalesOrderHeader
+ WHERE DATEPART(year, OrderDate) = 2012
+
+```{r}
+#| eval: false
+advw <- DBI::dbConnect(odbc(),
+                      Driver = "ODBC Driver 17 for SQL Server",
+                      Server = "mcobsql.business.nd.edu",
+                      UID = "MSBAstudent",
+                      PWD = "SQL%database!Mendoza",
+                      Port = 3306, 
+                      Database = "AdventureWorks2014")
+soh <- tbl(advw, in_schema('Sales','SalesOrderHeader'))
+
+show_query(soh)
+
+orders_from_2012 <- soh %>%
+  select(SalesOrderID, OrderDate, CustomerID, TotalDue) %>%
+  filter(year(OrderDate)==2012)
+
+view(orders_from_2012)
+
+show_query(orders_from_2012)
+
+```
+
+Now let’s try the query that pulled the names of employees in the Sales department.  That used the more complex SQL query that you see here in the comments.
+
+I need a few tables to do this:
+```{r}
+person <- tbl(advw, in_schema('Person', 'Person'))
+employee <- tbl(advw, in_schema('HumanResources', 'Employee'))
+employeedepartmenthistory <- tbl(advw, in_schema('HumanResources', 'EmployeeDepartmentHistory'))
+department <- tbl(advw, in_schema('HumanResources', 'Department'))
+
+#And then I can start working on these with dplyr verbs
+
+sales_employees <- person %>%
+  inner_join(employee, by='BusinessEntityID') %>%
+  inner_join(employeedepartmenthistory, by='BusinessEntityID') %>%
+  inner_join(department, by='DepartmentID') %>%
+  select(FirstName, LastName, HireDate, Name) %>%
+  filter(Name=='Sales')
+
+show_query(sales_employees)
+
+sales_dat <- sales_employees %>% collect()
+view(sales_dat)
+
+DBI::dbDisconnect(advw)
+```
+
 ## DuckDB
 
 Subject to the whims of developers, some technologies get popular, while others don't. Over the last year or so, DuckDB has found great popularity within the analytics world. It has support for just about every language that is used within the space and makes life much easier than your typical Microsoft products.
@@ -207,9 +285,11 @@ library(dbplyr)
 con <- dbConnect(duckdb::duckdb())
 
 tbl(con, 
-    "~/data_wrangling_class/data/Rail_Equipment_Accident_Incident_Data.csv") |>
-  group_by(`Accident Type`) |>
+    "~/Google Drive/My Drive/Teaching/MSBR70810.Data.Wrangling/data_wrangling/Rail_Equipment_Accident_Incident_Data.csv") |>
+  group_by(`Accident Type`) |> # realizing the wisdom of pipes, R 4 natively supports piping! :)
   summarise(mean_killed = mean(`Total Persons Killed`)) |>
   collect()
 ```
-
+```{r}
+system.time(tp <- read_csv("~/Google Drive/My Drive/Teaching/MSBR70810.Data.Wrangling/data_wrangling/Rail_Equipment_Accident_Incident_Data.csv"))
+```
